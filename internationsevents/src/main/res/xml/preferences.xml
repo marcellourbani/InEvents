@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="utf-8"?>
+
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android">
+    <EditTextPreference
+        android:key="pr_email"
+        android:summary="Username"
+        android:title="email address"
+        android:defaultValue="marcello.urbani@gmail.com"/>
+    <EditTextPreference
+        android:password="true"
+        android:key="pr_password"
+        android:summary="Password"
+        android:title="Password"/>
+
+</PreferenceScreen>
