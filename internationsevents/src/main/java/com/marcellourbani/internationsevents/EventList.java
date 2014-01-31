@@ -1,12 +1,12 @@
 package com.marcellourbani.internationsevents;
 
+import android.content.Context;
+import android.support.v4.app.ListFragment;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.preference.PreferenceManager;
 import android.support.v7.app.ActionBarActivity;
 import android.support.v7.app.ActionBar;
-import android.support.v4.app.Fragment;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -14,7 +14,11 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.ListAdapter;
 import android.widget.TextView;
+
+import java.lang.reflect.Array;
+import java.util.ArrayList;
 
 public class EventList extends ActionBarActivity implements ActionBar.OnNavigationListener {
 
@@ -23,8 +27,6 @@ public class EventList extends ActionBarActivity implements ActionBar.OnNavigati
      * current dropdown position.
      */
     private static final String STATE_SELECTED_NAVIGATION_ITEM = "selected_navigation_item";
-    protected InternationsBot mIbot;
-    private NetWorker mNw;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -44,19 +46,10 @@ public class EventList extends ActionBarActivity implements ActionBar.OnNavigati
                         android.R.layout.simple_list_item_1,
                         android.R.id.text1,
                         new String[]{
-                                getString(R.string.title_section1),
-                                getString(R.string.title_section2),
-                                getString(R.string.title_section3),
+                                getString(R.string.title_future),
+                                getString(R.string.title_subscribed),
                         }),
                 this);
-        SharedPreferences sharedPref = PreferenceManager.getDefaultSharedPreferences(this);
-        String user = sharedPref.getString("pr_email", "");
-        String password = sharedPref.getString("pr_password","");
-        if (password.length()==0)
-            startActivity( new Intent(this,InPreferences.class));
-        mIbot = new InternationsBot(user,password);
-        mNw = new NetWorker();
-        mNw.execute("1");
     }
 
     @Override
@@ -101,59 +94,72 @@ public class EventList extends ActionBarActivity implements ActionBar.OnNavigati
         // When the given dropdown item is selected, show its contents in the
         // container view.
         getSupportFragmentManager().beginTransaction()
-                .replace(R.id.container, PlaceholderFragment.newInstance(position + 1))
+                .replace(R.id.container, EventsFragment.newInstance(position + 1))
                 .commit();
         return true;
     }
 
-    /**
-     * A placeholder fragment containing a simple view.
-     */
-    public static class PlaceholderFragment extends Fragment {
-        /**
-         * The fragment argument representing the section number for this
-         * fragment.
-         */
+    public static class EventsFragment extends ListFragment {
+        protected static InternationsBot mIbot;
+        private NetWorker mNw;
         private static final String ARG_SECTION_NUMBER = "section_number";
-
-        /**
-         * Returns a new instance of this fragment for the given section
-         * number.
-         */
-        public static PlaceholderFragment newInstance(int sectionNumber) {
-            PlaceholderFragment fragment = new PlaceholderFragment();
+        public static EventsFragment newInstance(int sectionNumber) {
+            EventsFragment fragment = new EventsFragment();
             Bundle args = new Bundle();
             args.putInt(ARG_SECTION_NUMBER, sectionNumber);
             fragment.setArguments(args);
             return fragment;
         }
-
-        public PlaceholderFragment() {
+        public EventsFragment() {
         }
-
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
                                  Bundle savedInstanceState) {
+            mIbot = new InternationsBot(PreferenceManager.getDefaultSharedPreferences(getActivity()));
+            mNw = new NetWorker();
             View rootView = inflater.inflate(R.layout.fragment_event_list, container, false);
-            TextView textView = (TextView) rootView.findViewById(R.id.section_label);
-            textView.setText(Integer.toString(getArguments().getInt(ARG_SECTION_NUMBER)));
+//            TextView textView = (TextView) rootView.findViewById(R.id.);
+//            textView.setText(Integer.toString(getArguments().getInt(ARG_SECTION_NUMBER)));
+            mNw.execute("1");
             return rootView;
         }
-    }
-
-    private class NetWorker extends AsyncTask<String, Void, String> {
-
+    private class NetWorker extends AsyncTask<String, Void, Boolean> {
         @Override
-        protected void onPostExecute(String o) {
+        protected void onPostExecute(Boolean o) {
             super.onPostExecute(o);
+            if(o){
+                ArrayAdapter<InEvent> aa = new ArrayAdapter<InEvent>(getActivity(), R.layout.fragment_event_list, mIbot.getEvents()) {
+                    @Override
+                    public View getView(int position, View convertView, ViewGroup parent) {
+                        View view = convertView;
+                        if(view==null){
+                            LayoutInflater inflater = (LayoutInflater) getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
+                            view = inflater.inflate(R.layout.event_item,null);
+                        }
+                        InEvent event = getItem(position);
+                        if (event!=null){
+                            TextView title = (TextView) view.findViewById(R.id.eititle);
+                            TextView location = (TextView) view.findViewById(R.id.eilocation);
+                            title.setText(event.mTitle);
+                            location.setText(event.mLocation);
+                        }
+                        return view;
+                    }
+                };
+                EventsFragment.this.setListAdapter(aa);
+                aa.notifyDataSetChanged();
+            }
+            else
+                startActivity( new Intent(getActivity(),InPreferences.class));
         }
-
         @Override
-        protected String doInBackground(String... strings) {
-            mIbot.readMyEvents();
-            return "test";
+        protected Boolean doInBackground(String... strings) {
+            if (mIbot.sign())
+                mIbot.readMyEvents();
+              else
+                return false;
+            return true;
         }
     }
-
-
+    }
 }

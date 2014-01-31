@@ -1,5 +1,9 @@
 package com.marcellourbani.internationsevents;
 
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
+
 import org.apache.http.NameValuePair;
 import org.apache.http.message.BasicNameValuePair;
 import org.jsoup.Jsoup;
@@ -16,17 +20,18 @@ public class InternationsBot {
     private final String mPass;
     httpClient mClient;
     boolean mSigned = false;
-    List<InEvent> mEvents = new ArrayList<InEvent>();
+    ArrayList<InEvent> mEvents = new ArrayList<InEvent>();
 
-    public InternationsBot(String user, String pass) {
+    public InternationsBot(SharedPreferences sharedPref) {
         mClient = new httpClient();
-        mUser = user;
-        mPass = pass;
+        mUser = sharedPref.getString("pr_email", "");
+        mPass = sharedPref.getString("pr_password","");
+//        if (mPass.length()==0)
+//            startActivity( new Intent(this,InPreferences.class));
     }
 
     public void readMyEvents() {
         try {
-            sign();
             String ev = mClient.geturl_string("http://www.internations.org/events/my?ref=he_ev_me");
             Document doc = Jsoup.parse(ev);
             Elements elements = doc.select("#my_upcoming_events_table tbody tr");
@@ -38,16 +43,23 @@ public class InternationsBot {
         }
     }
 
-    private void sign() {
-        if (!mSigned)
+    public boolean sign() {
+        if (!mSigned && mPass!=null&&mPass.length()>0)
             try {
                 List<NameValuePair> parms = new ArrayList<NameValuePair>();
                 parms.add(new BasicNameValuePair("user_email",mUser));
                 parms.add(new BasicNameValuePair("user_password",mPass));
-                mClient.posturl_string("https://www.internations.org/users/signin", parms);
-                mSigned = true;
+                mSigned= mClient.posturl_string("https://www.internations.org/users/signin", parms)
+                        .indexOf("Incorrect email or password")<=0;
             } catch (Throwable e) {
-                e.printStackTrace();
+                mSigned = false;
             }
+        else
+            mSigned = false;
+        return mSigned;
+    }
+
+    public ArrayList<InEvent> getEvents() {
+        return mEvents;
     }
 }

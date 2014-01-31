@@ -4,8 +4,7 @@
     <EditTextPreference
         android:key="pr_email"
         android:summary="Username"
-        android:title="email address"
-        android:defaultValue="marcello.urbani@gmail.com"/>
+        android:title="email address"/>
     <EditTextPreference
         android:password="true"
         android:key="pr_password"
