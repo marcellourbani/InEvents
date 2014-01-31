@@ -1,17 +1,71 @@
 <?xml version="1.0" encoding="utf-8"?>
 
-<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="vertical" android:layout_width="match_parent"
     android:layout_height="match_parent">
+
+    <ImageView
+        android:layout_width="50dip"
+        android:layout_height="50dip"
+        android:id="@+id/eiicon"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentLeft="true"
+        android:src="@drawable/ic_launcher" />
+
     <TextView android:id="@+id/eititle"
         android:textSize="16sp"
         android:textStyle="bold"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"/>
+        android:layout_height="wrap_content"
+        android:layout_alignParentTop="true"
+        android:layout_toRightOf="@+id/eiicon"
+        android:text="Title"
+        android:layout_toLeftOf="@+id/eistart" />
 
     <TextView android:id="@+id/eilocation"
         android:textSize="16sp"
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"/>
+        android:layout_height="wrap_content"
+        android:layout_below="@+id/eititle"
+        android:layout_toRightOf="@+id/eiicon"
+        android:text="Location"
+        android:layout_toLeftOf="@+id/eistop" />
 
-</LinearLayout>
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:text="Start"
+        android:id="@+id/eistart"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentRight="true" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:text="Stop"
+        android:id="@+id/eistop"
+        android:layout_below="@+id/eititle"
+        android:layout_alignParentRight="true" />
+
+    <TextView
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:text="Group"
+        android:id="@+id/eigroup"
+        android:layout_below="@+id/eilocation"
+        android:layout_toRightOf="@+id/eiicon"
+        android:layout_toLeftOf="@+id/eirsvp" />
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:text="Going"
+        android:id="@+id/eirsvp"
+        android:layout_below="@+id/eilocation"
+        android:layout_alignParentRight="true" />
+
+</RelativeLayout>

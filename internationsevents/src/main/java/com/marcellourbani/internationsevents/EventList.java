@@ -1,6 +1,7 @@
 package com.marcellourbani.internationsevents;
 
 import android.content.Context;
+import android.net.Uri;
 import android.support.v4.app.ListFragment;
 import android.content.Intent;
 import android.os.AsyncTask;
@@ -14,10 +15,17 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.ImageView;
 import android.widget.ListAdapter;
 import android.widget.TextView;
 
 import java.lang.reflect.Array;
+import java.net.MalformedURLException;
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URL;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 
 public class EventList extends ActionBarActivity implements ActionBar.OnNavigationListener {
@@ -138,8 +146,19 @@ public class EventList extends ActionBarActivity implements ActionBar.OnNavigati
                         }
                         InEvent event = getItem(position);
                         if (event!=null){
+                            DateFormat df = new SimpleDateFormat("dd.MM.yy kk:mm");
                             TextView title = (TextView) view.findViewById(R.id.eititle);
                             TextView location = (TextView) view.findViewById(R.id.eilocation);
+                            TextView rsvp = (TextView) view.findViewById(R.id.eirsvp);
+                            TextView start = (TextView) view.findViewById(R.id.eistart);
+                            TextView stop = (TextView) view.findViewById(R.id.eistop);
+                            TextView group = (TextView) view.findViewById(R.id.eigroup);
+                            ImageView icon = (ImageView) view.findViewById(R.id.eiicon);
+                            rsvp.setText(event.mSubscribed?"Going":"Not going");
+                            start.setText(event.mStart != null ? df.format(event.mStart.getTime()) : "");
+                            stop.setText(event.mStop!=null?df.format(event.mStop.getTime()):"");
+                            group.setText("");
+                              //  icon.setImageURI(new URI(event.mIconUrl));
                             title.setText(event.mTitle);
                             location.setText(event.mLocation);
                         }
