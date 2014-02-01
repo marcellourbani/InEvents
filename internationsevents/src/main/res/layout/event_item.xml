@@ -9,8 +9,7 @@
         android:layout_height="50dip"
         android:id="@+id/eiicon"
         android:layout_alignParentTop="true"
-        android:layout_alignParentLeft="true"
-        android:src="@drawable/ic_launcher" />
+        android:layout_alignParentLeft="true" />
 
     <TextView android:id="@+id/eititle"
         android:textSize="16sp"

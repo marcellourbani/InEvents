@@ -1,5 +1,6 @@
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-android:orientation="vertical"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:orientation="vertical"
 android:layout_width="match_parent"
 android:layout_height="match_parent"
 android:paddingLeft="8dp"
@@ -10,7 +11,8 @@ android:paddingRight="8dp">
     android:layout_height="match_parent"
     android:background="#E0E0E0"
     android:layout_weight="1"
-    android:drawSelectorOnTop="false"/>
+    android:drawSelectorOnTop="false"
+    tools:listitem="@layout/event_item" />
 
 <TextView android:id="@id/android:empty"
     android:layout_width="match_parent"
