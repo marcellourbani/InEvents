@@ -10,5 +10,6 @@
         android:key="pr_password"
         android:summary="Password"
         android:title="Password"/>
-
+    <ListPreference android:key="pr_calendar"
+                    android:summary="Calendar"/>
 </PreferenceScreen>

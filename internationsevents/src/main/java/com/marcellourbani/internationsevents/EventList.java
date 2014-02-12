@@ -1,14 +1,12 @@
 package com.marcellourbani.internationsevents;
 
 import android.app.Activity;
+import android.app.ListFragment;
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.support.v4.app.ListFragment;
 import android.content.Intent;
 import android.os.AsyncTask;
 import android.preference.PreferenceManager;
-import android.support.v7.app.ActionBarActivity;
-import android.support.v7.app.ActionBar;
 import android.os.Bundle;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -24,7 +22,7 @@ import com.squareup.picasso.Picasso;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 
-public class EventList extends ActionBarActivity {
+public class EventList extends Activity {
     protected static InternationsBot mIbot;
     private static EventsFragment mFrag;
 
@@ -35,7 +33,7 @@ public class EventList extends ActionBarActivity {
         setContentView(R.layout.activity_event_list);
         mFrag = new EventsFragment(mIbot);
         if (savedInstanceState == null) {
-            getSupportFragmentManager().beginTransaction()
+            getFragmentManager().beginTransaction()
                     .add(R.id.container, mFrag)
                     .commit();
         }

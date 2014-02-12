@@ -26,8 +26,6 @@ public class InternationsBot {
         mClient = new httpClient();
         mUser = sharedPref.getString("pr_email", "");
         mPass = sharedPref.getString("pr_password","");
-//        if (mPass.length()==0)
-//            startActivity( new Intent(this,InPreferences.class));
     }
 
     public void readMyEvents() {
