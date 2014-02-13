@@ -3,6 +3,7 @@ package com.marcellourbani.internationsevents;
 import android.annotation.TargetApi;
 import android.app.Activity;
 import android.content.ContentResolver;
+import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.res.Resources;
@@ -13,6 +14,8 @@ import android.preference.ListPreference;
 import android.preference.PreferenceManager;
 import android.provider.CalendarContract;
 import android.provider.CalendarContract.Calendars;
+import android.provider.CalendarContract.Events;
+import android.provider.ContactsContract;
 
 import java.util.ArrayList;
 import java.util.Calendar;
@@ -25,8 +28,9 @@ import java.util.prefs.Preferences;
  * Created by Marcello on 11/02/14.
  */
 public class InCalendar {
-    final static String[] CALCOLUMNS = new String[]{Calendars._ID, Calendars.CALENDAR_DISPLAY_NAME};
-    final static String CALENDARS_WHERE = Calendars.CALENDAR_ACCESS_LEVEL + ">=" + Calendars.CAL_ACCESS_EDITOR;
+    private static final Uri CAL_URI = CalendarContract.Calendars.CONTENT_URI;
+    private static final String[] CALCOLUMNS = new String[]{Calendars._ID, Calendars.CALENDAR_DISPLAY_NAME};
+    private static final String CALENDARS_WHERE = Calendars.CALENDAR_ACCESS_LEVEL + ">=" + Calendars.CAL_ACCESS_CONTRIBUTOR;
     private String mId,mName;
     public String getId() {
         return mId;
@@ -49,33 +53,40 @@ public class InCalendar {
         setId(c.getString(c.getColumnIndex(Calendars._ID)));
         setName(c.getString(c.getColumnIndex(Calendars.CALENDAR_DISPLAY_NAME)));
     }
-    //TODO:this is a template
-    public static void addEvent(Context context,InEvent event ){
-        Calendar beginTime = Calendar.getInstance();
-        ContentResolver cr = context.getContentResolver();
+    private static ContentValues getEventValues(Context context,InEvent event){
         ContentValues values = new ContentValues();
         TimeZone timeZone = TimeZone.getDefault();
         values.put(CalendarContract.Events.DTSTART, event.mStart.getTimeInMillis());
-        values.put(CalendarContract.Events.DTEND,event.mStop.getTimeInMillis() );
+        values.put(CalendarContract.Events.DTEND,event.mStop!=null?event.mStop.getTimeInMillis():(event.mStart.getTimeInMillis()+3600000) );
         values.put(CalendarContract.Events.EVENT_TIMEZONE, timeZone.getID());
         values.put(CalendarContract.Events.TITLE, event.mTitle);
-        values.put(CalendarContract.Events.DESCRIPTION, event.mGroup +" "+ event.mTitle);
+        values.put(Events.EVENT_LOCATION,event.mLocation);
+        values.put(CalendarContract.Events.DESCRIPTION, event.mGroup +" "+ event.mTitle+"\n"+event.mEventUrl);
         values.put(CalendarContract.Events.CALENDAR_ID, getDefaultCalendar(context));
         values.put(CalendarContract.Events.CUSTOM_APP_URI, event.mEventUrl);
-        Uri uri = cr.insert(CalendarContract.Events.CONTENT_URI, values);
-
+        return values;
+    }
+    public static void addEvent(Context context,InEvent event ){
+        ContentResolver cr = context.getContentResolver();
+        Uri uri = cr.insert(Events.CONTENT_URI, getEventValues(context,event));
         String eventID = uri.getLastPathSegment();
     }
-    public void modifyEvent(InEvent event){
-
-    }
-    public void deleteEvent(InEvent event){
-//        Uri eventUri = Uri.parse("content://calendar/events");  // or "content://com.android.calendar/events"
-//        Cursor cursor = contentResolver.query(eventUri, new String[]{"_id"}, "calendar_id = " + calendarId, null, null); // calendar_id can change in new versions
-//        while(cursor.moveToNext()) {
-//            Uri deleteUri = ContentUris.withAppendedId(eventUri, cursor.getInt(0));
-//            contentResolver.delete(deleteUri, null, null);
-//        }
+    public static void modifyEvent(Context context,InEvent event){
+        String cal = getDefaultCalendar(context);
+        ContentResolver contentResolver = context.getContentResolver();
+        Cursor cursor = contentResolver.query(Events.CONTENT_URI, new String[]{Events._ID,Events.DESCRIPTION,Events.CUSTOM_APP_URI},
+                Events.CALENDAR_ID + " = ?" ,
+               new String[]{cal}, null);
+        boolean updated = false;
+        while(cursor.moveToNext()) {
+            final int APPURL = cursor.getColumnIndex(CalendarContract.Events.CUSTOM_APP_URI);
+            if(cursor.getString(APPURL)!=null&&cursor.getString(APPURL).equals(event.mEventUrl)){
+                updated = contentResolver.update(Events.CONTENT_URI,getEventValues(context,event),
+                        "("+Events._ID+" = ?)",new String[]{cursor.getString(0)})>0;
+              break;
+            }
+        }
+        if(!updated)addEvent(context,event);
     }
     private static String getDefaultCalendar(Context context){
         return PreferenceManager.getDefaultSharedPreferences(context).getString("pr_calendar", "");
@@ -84,7 +95,7 @@ public class InCalendar {
         ArrayList<InCalendar> calendars = null;
         ContentResolver cr = context.getContentResolver();
         Resources r = context.getResources();
-        Cursor c = cr.query(CalendarContract.Calendars.CONTENT_URI, CALCOLUMNS,
+        Cursor c = cr.query(CAL_URI, CALCOLUMNS,
                 CALENDARS_WHERE, null, Calendars.DEFAULT_SORT_ORDER);
         try {
             String defaultSetting = getDefaultCalendar(context);

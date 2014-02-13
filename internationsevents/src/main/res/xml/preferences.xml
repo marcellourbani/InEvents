@@ -11,5 +11,6 @@
         android:summary="Password"
         android:title="Password"/>
     <ListPreference android:key="pr_calendar"
-                    android:summary="Calendar"/>
+                    android:title="Calendar"
+                    android:summary="To sync subscribed events"/>
 </PreferenceScreen>

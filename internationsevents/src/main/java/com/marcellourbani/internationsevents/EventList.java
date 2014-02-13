@@ -29,6 +29,9 @@ public class EventList extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        //TODO refresh button/indicator
+        //TODO no refresh when network not connected
+        //TODO? store events in database for offline access
         mIbot = new InternationsBot(PreferenceManager.getDefaultSharedPreferences(this));
         setContentView(R.layout.activity_event_list);
         mFrag = new EventsFragment(mIbot);
@@ -97,6 +100,10 @@ public class EventList extends Activity {
             protected void onPostExecute(Boolean o) {
                 super.onPostExecute(o);
                 if (o) {
+                    for(InEvent event : mIbot.getEvents()){
+                        if(event.mSubscribed)
+                            InCalendar.modifyEvent(getActivity(),event);
+                    }
                     ArrayAdapter<InEvent> aa = new ArrayAdapter<InEvent>(getActivity(), R.layout.fragment_event_list, mIbot.getEvents()) {
                         @Override
                         public View getView(int position, View convertView, ViewGroup parent) {
@@ -107,6 +114,8 @@ public class EventList extends Activity {
                             }
                             InEvent event = getItem(position);
                             if (event != null) {
+                                //TODO click to display event (in browser or webview)
+                                //TODO (un)subscribe
                                 DateFormat df = new SimpleDateFormat("dd.MM.yy kk:mm");
                                 TextView title = (TextView) view.findViewById(R.id.eititle);
                                 TextView location = (TextView) view.findViewById(R.id.eilocation);

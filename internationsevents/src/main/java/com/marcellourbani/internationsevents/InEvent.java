@@ -3,6 +3,7 @@ package com.marcellourbani.internationsevents;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+import java.net.URL;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.GregorianCalendar;
@@ -29,13 +30,14 @@ public class InEvent {
 
     InEvent(Element e) {
         try {
+            final URL INURL = new URL("http://www.internations.org/start");
             mIconUrl = getAttr(e.select("p.guide-photo img"), 0, "src");
             Elements tmp = e.select("div.guide-entry p");
             if(tmp!=null&&tmp.size()>=2&&!tmp.get(1).hasClass("guide-name"))
                 mGroup = tmp.get(1).text();
             tmp = e.select("h3.guide-name a");
             mTitle = tmp!=null&&tmp.size()>0? tmp.get(0).text():"";
-            mEventUrl = getAttr(tmp, 0, "href");
+            mEventUrl =( new URL( INURL , getAttr(tmp, 0, "href"))).toString();
             mActPattern = Pattern.compile("activity-group/([0-9]+)/activity/([0-9]+)");
             mEventPattern = Pattern.compile("/events/.*[^0-9]([0-9]+)$");
             Matcher mat = mActPattern.matcher(mEventUrl);
@@ -49,6 +51,7 @@ public class InEvent {
             mSubscribed = !(getAttr(e.select("span.already-guest img"), 0, "src").equals(""));
             tmp = e.select("td.col_city");
             mLocation = tmp.text();
+            if(mLocation.length()>4 && mLocation.substring(0,3).equals("At ")) mLocation = mLocation.substring(3);
             tmp = e.select("td.col_datetime p.date");
             String startd = tmp.get(0).text();
             String endd = tmp.size() > 1 ? tmp.get(1).text() : startd;
@@ -65,7 +68,7 @@ public class InEvent {
                 mStop.setTime(df.parse(endd + " " + endt));
             }
         } catch (Throwable t) {
-            t.printStackTrace();
+
         }
     }
 }

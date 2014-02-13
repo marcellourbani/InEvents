@@ -1,5 +1,6 @@
 package com.marcellourbani.internationsevents;
 
+import android.app.Application;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
@@ -34,7 +35,8 @@ public class InternationsBot {
             Document doc = Jsoup.parse(ev);
             Elements elements = doc.select("#my_upcoming_events_table tbody tr");
             for (Element e : elements) {
-                mEvents.add(new InEvent(e));
+                InEvent event = new InEvent(e);
+                mEvents.add(event);
             }
         } catch (IOException e) {
             e.printStackTrace();
