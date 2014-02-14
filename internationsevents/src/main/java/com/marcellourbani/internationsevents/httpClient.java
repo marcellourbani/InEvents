@@ -3,10 +3,12 @@ package com.marcellourbani.internationsevents;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
+import org.apache.http.client.CookieStore;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
 import org.apache.http.conn.ClientConnectionManager;
+import org.apache.http.cookie.Cookie;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.apache.http.params.HttpParams;
@@ -24,6 +26,7 @@ import java.util.List;
 
 public class httpClient {
     DefaultHttpClient httpClient;
+
     public httpClient() {
         DefaultHttpClient client = new DefaultHttpClient();
         ClientConnectionManager mgr = client.getConnectionManager();
@@ -38,10 +41,12 @@ public class httpClient {
         HttpEntity entity = response.getEntity();
         return entity.getContent();
     }
+
     public String geturl_string(String url) throws IOException {
         return streamToString(geturl_stream(url));
     }
-    public InputStream posturl_stream(String url, List<NameValuePair> params) throws IOException{
+
+    public InputStream posturl_stream(String url, List<NameValuePair> params) throws IOException {
         HttpPost httppost = new HttpPost(url);
         httppost.setEntity(new UrlEncodedFormEntity(params));
         HttpResponse response = httpClient.execute(httppost);
@@ -51,10 +56,12 @@ public class httpClient {
         HttpEntity entity = response.getEntity();
         return entity.getContent();
     }
-    public String posturl_string(String url, List<NameValuePair> params)throws Throwable {
+
+    public String posturl_string(String url, List<NameValuePair> params) throws Throwable {
         return streamToString(posturl_stream(url, params));
     }
-    public String download(String url, List<NameValuePair> params, File file) throws IOException{
+
+    public String download(String url, List<NameValuePair> params, File file) throws IOException {
         HttpPost httppost = new HttpPost(url);
         httppost.setEntity(new UrlEncodedFormEntity(params));
         HttpResponse response = httpClient.execute(httppost);
@@ -73,10 +80,11 @@ public class httpClient {
             }
             mt = en.getContentType().getValue();
         }
-        if(bos!=null)bos.close();
+        if (bos != null) bos.close();
         return mt;
     }
-    public byte[] streamToByte(InputStream is) throws IOException{
+
+    public byte[] streamToByte(InputStream is) throws IOException {
         ByteArrayOutputStream bos = new ByteArrayOutputStream(1024);
         BufferedInputStream bis = new BufferedInputStream(is);
         int i;
@@ -85,7 +93,8 @@ public class httpClient {
         }
         return bos.toByteArray();
     }
-    private String streamToString(InputStream is) throws IOException{
+
+    private String streamToString(InputStream is) throws IOException {
         BufferedReader r = new BufferedReader(new InputStreamReader(is));
         StringBuilder sb = new StringBuilder();
         String line;
@@ -95,4 +104,17 @@ public class httpClient {
         return sb.toString();
     }
 
+    public String getCookies() {
+        if (httpClient == null||httpClient.getCookieStore() == null) return "";
+        else {
+//            String s=null;
+            CookieStore store = httpClient.getCookieStore();
+//            for(Cookie cookie: store.getCookies()){
+//                String cs = cookie.getName()+"="+cookie.getValue();
+//                s = s==null?cs:s+"; "+cs;
+//            }
+//           // return s;
+            return store.toString();
+        }
+    }
 }

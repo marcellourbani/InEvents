@@ -73,6 +73,8 @@ public class InCalendar {
     }
     public static void modifyEvent(Context context,InEvent event){
         String cal = getDefaultCalendar(context);
+        if(cal==null || cal.length()==0)
+            return;
         ContentResolver contentResolver = context.getContentResolver();
         Cursor cursor = contentResolver.query(Events.CONTENT_URI, new String[]{Events._ID,Events.DESCRIPTION,Events.CUSTOM_APP_URI},
                 Events.CALENDAR_ID + " = ?" ,

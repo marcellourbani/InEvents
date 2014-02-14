@@ -22,11 +22,34 @@ public class InternationsBot {
     httpClient mClient;
     boolean mSigned = false;
     ArrayList<InEvent> mEvents = new ArrayList<InEvent>();
-
+    public boolean passIsSet(){
+        return mPass!=null&&mPass.length()>0;
+    }
     public InternationsBot(SharedPreferences sharedPref) {
         mClient = new httpClient();
         mUser = sharedPref.getString("pr_email", "");
-        mPass = sharedPref.getString("pr_password","");
+        mPass = sharedPref.getString("pr_password", "");
+    }
+    //TODO unsubscribe
+    public boolean rsvp(InEvent event,boolean going){
+        try {
+            String url = event.getRsvpUrl(going);
+            if(going)
+               url = mClient.geturl_string(url);
+            else{
+//                _method	DELETE
+//                common_base_form[_token]	693022c0153c1f23757f834d5b8ad89dd99a7257
+//                redirectRoute	_activity_group_activity_get
+//                redirectRouteParameters[a...	470
+//                redirectRouteParameters[a...	62901
+                ArrayList<NameValuePair> parms = new ArrayList<NameValuePair>();
+                parms.add(new BasicNameValuePair("_method","DELETE"));
+                url = mClient.posturl_string(url, parms);
+            }
+            return true;
+        } catch (Throwable t) {
+            return false;
+        }
     }
 
     public void readMyEvents() {
@@ -34,6 +57,7 @@ public class InternationsBot {
             String ev = mClient.geturl_string("http://www.internations.org/events/my?ref=he_ev_me");
             Document doc = Jsoup.parse(ev);
             Elements elements = doc.select("#my_upcoming_events_table tbody tr");
+            mEvents.clear();
             for (Element e : elements) {
                 InEvent event = new InEvent(e);
                 mEvents.add(event);
@@ -42,24 +66,29 @@ public class InternationsBot {
             e.printStackTrace();
         }
     }
-
+//returns true if the web transaction was successful, sets mSigned based on the outcome
     public boolean sign() {
-        if (!mSigned && mPass!=null&&mPass.length()>0)
-            try {
-                List<NameValuePair> parms = new ArrayList<NameValuePair>();
-                parms.add(new BasicNameValuePair("user_email",mUser));
-                parms.add(new BasicNameValuePair("user_password",mPass));
-                mSigned= mClient.posturl_string("https://www.internations.org/users/signin", parms)
-                        .indexOf("Incorrect email or password")<=0;
-            } catch (Throwable e) {
-                mSigned = false;
-            }
-        else
-            mSigned = false;
-        return mSigned;
+        if (!mSigned) {
+            if (passIsSet())
+                try {
+                    List<NameValuePair> parms = new ArrayList<NameValuePair>();
+                    parms.add(new BasicNameValuePair("user_email", mUser));
+                    parms.add(new BasicNameValuePair("user_password", mPass));
+                    mSigned = mClient.posturl_string("https://www.internations.org/users/signin", parms)
+                            .indexOf("Incorrect email or password") <= 0;
+                } catch (Throwable e) {
+                    mSigned = false;
+                    return false;
+                }
+        }
+        return true;
     }
 
     public ArrayList<InEvent> getEvents() {
         return mEvents;
+    }
+
+    public String getCookies() {
+        return mClient==null?"":mClient.getCookies();
     }
 }

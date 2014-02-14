@@ -13,7 +13,7 @@ import java.util.regex.Pattern;
 public class InEvent {
     private Pattern mActPattern;
     private Pattern mEventPattern;
-    private String mGroupId;
+    private String mGroupId=null;
     private String mEventId;
     String mIconUrl, mTitle, mLocation, mEventUrl,mGroup;
     boolean mSubscribed;
@@ -27,7 +27,15 @@ public class InEvent {
             return "";
         }
     }
-
+    public String getRsvpUrl(boolean attend){
+        if(mGroupId==null){
+          return "http://www.internations.org/events/"+
+                  ( attend?"signin/":"signout/")+mEventId;
+        }else {
+            return "http://www.internations.org/activity-group/"+mGroupId+"/activity/"+mEventId+
+                    "/attendance/"+(attend?"accept":"decline");
+        }
+    }
     InEvent(Element e) {
         try {
             final URL INURL = new URL("http://www.internations.org/start");
