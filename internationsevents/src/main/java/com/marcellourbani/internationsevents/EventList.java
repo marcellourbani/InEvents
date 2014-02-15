@@ -16,6 +16,7 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
+import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.CompoundButton;
 import android.widget.ImageView;
@@ -107,20 +108,6 @@ public class EventList extends Activity {
             mNw.execute(Operations.LOAD);
         }
 
-        public void rsvp(InEvent event, boolean going) {
-            if (going) {
-                if(event.mSubscribed)return;
-                EventList el = ((EventList) getActivity());
-                if (el != null && el.refresh != null)
-                    el.refresh.setActionView(R.layout.actionbar_indeterminate_progress);
-                mNw = new NetWorker();
-                mNw.mEvent = event;
-                mNw.execute(going ? Operations.RSVPYES : Operations.RSVPNO);
-            } else {
-                if(getActivity()!=null&&getActivity().getApplication()!=null)
-                Toast.makeText(getActivity().getApplication().getBaseContext(), "Unsubscribe not implemented yet",Toast.LENGTH_SHORT).show();
-            }
-        }
 
         private class NetWorker extends AsyncTask<Operations, Void, Boolean> {
             InEvent mEvent = null;
@@ -137,6 +124,10 @@ public class EventList extends Activity {
                             InCalendar.modifyEvent(getActivity(), event);
                     }
                     ArrayAdapter<InEvent> aa = new ArrayAdapter<InEvent>(getActivity(), R.layout.fragment_event_list, mIbot.getEvents()) {
+                        final DateFormat df = new SimpleDateFormat("dd.MM.yy kk:mm")
+                                ,
+                                tf = new SimpleDateFormat("kk:mm");
+
                         @Override
                         public View getView(int position, View convertView, ViewGroup parent) {
                             View view = convertView;
@@ -146,38 +137,46 @@ public class EventList extends Activity {
                             }
                             final InEvent event = getItem(position);
                             if (event != null) {
-                                DateFormat df = new SimpleDateFormat("dd.MM.yy kk:mm");
                                 TextView title = (TextView) view.findViewById(R.id.eititle);
                                 TextView location = (TextView) view.findViewById(R.id.eilocation);
-                                CheckBox rsvp = (CheckBox) view.findViewById(R.id.eigoing);
-                                TextView start = (TextView) view.findViewById(R.id.eistart);
+                                ImageView locicon = (ImageView) view.findViewById(R.id.eilocationic);
+                                Button rsvp = (Button) view.findViewById(R.id.eirsvp);
+                                TextView startdt = (TextView) view.findViewById(R.id.eidate);
+                                TextView starttm = (TextView) view.findViewById(R.id.eitime);
                                 TextView group = (TextView) view.findViewById(R.id.eigroup);
                                 ImageView icon = (ImageView) view.findViewById(R.id.eiicon);
                                 rsvp.setText(event.mSubscribed ? "Going" : "Not going");
-                                rsvp.setChecked(event.mSubscribed);
-                                start.setText(event.mStart != null ? df.format(event.mStart.getTime()) : "");
+                                startdt.setText(event.mStart != null ? df.format(event.mStart.getTime()) : "");
+                                starttm.setText(event.mStart != null ? tf.format(event.mStart.getTime()) : "");
                                 group.setText(event.mGroup);
                                 Picasso.with(getActivity()).load(event.mIconUrl).into(icon);
                                 title.setText(event.mTitle);
                                 location.setText(event.mLocation);
-                                rsvp.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
-                                    @Override
-                                    public void onCheckedChanged(CompoundButton compoundButton, boolean b) {
-                                        rsvp(event, b);
-                                    }
-                                });
-                                if(event.mSubscribed) rsvp.setClickable(false);
+                                if (event.mSubscribed) {
+                                    rsvp.setClickable(false);
+                                    rsvp.setText("Going");
+                                } else
+                                    rsvp.setOnClickListener(new View.OnClickListener() {
+                                        @Override
+                                        public void onClick(View view) {
+                                            rsvp(event, true);
+                                        }
+                                    });
+                                if (event.mSubscribed) rsvp.setClickable(false);
                                 title.setOnClickListener(new View.OnClickListener() {
                                     @Override
                                     public void onClick(View view) {
-                                        Intent i = new Intent(Intent.ACTION_VIEW, Uri.parse(event.mEventUrl));
-                                        Bundle bundle = new Bundle();
-                                        String cookies = mIbot.getCookies();
-                                        bundle.putString("Cookie", cookies);
-                                        i.putExtra(Browser.EXTRA_HEADERS, bundle);
-                                        startActivity(i);
+                                        showevent(event);
                                     }
                                 });
+                                View.OnClickListener startmap = new View.OnClickListener() {
+                                    @Override
+                                    public void onClick(View view) {
+                                        showmap(event);
+                                    }
+                                };
+                                locicon.setOnClickListener(startmap);
+                                location.setOnClickListener(startmap);
                             }
                             return view;
                         }
@@ -186,6 +185,33 @@ public class EventList extends Activity {
                     aa.notifyDataSetChanged();
                 } else if (!mIbot.passIsSet()) {
                     startActivity(new Intent(getActivity(), InPreferences.class));
+                }
+            }
+            private void showmap(InEvent event){
+                Uri uri = Uri.parse("geo:0,0?q="+event.mLocation);
+                Intent intent = new Intent(android.content.Intent.ACTION_VIEW, uri);
+                startActivity(intent);
+            }
+
+            private void showevent(InEvent event) {
+                Intent web = new Intent(getActivity(), InWeb.class);
+                web.putExtra(InWeb.EVENT_URL, event.mEventUrl);
+                web.putExtra(InWeb.CURRENT_COOKIES, mIbot.getCookies());
+                startActivity(web);
+            }
+
+            public void rsvp(InEvent event, boolean going) {
+                if (going) {
+                    if (event.mSubscribed) return;
+                    EventList el = ((EventList) getActivity());
+                    if (el != null && el.refresh != null)
+                        el.refresh.setActionView(R.layout.actionbar_indeterminate_progress);
+                    mNw = new NetWorker();
+                    mNw.mEvent = event;
+                    mNw.execute(going ? Operations.RSVPYES : Operations.RSVPNO);
+                } else {
+                    if (getActivity() != null && getActivity().getApplication() != null)
+                        Toast.makeText(getActivity().getApplication().getBaseContext(), "Unsubscribe not implemented yet", Toast.LENGTH_SHORT).show();
                 }
             }
 

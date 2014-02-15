@@ -1,5 +1,7 @@
 package com.marcellourbani.internationsevents;
 
+import android.os.Bundle;
+
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.NameValuePair;
@@ -11,6 +13,7 @@ import org.apache.http.conn.ClientConnectionManager;
 import org.apache.http.cookie.Cookie;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
+import org.apache.http.params.CoreProtocolPNames;
 import org.apache.http.params.HttpParams;
 
 import java.io.BufferedInputStream;
@@ -28,9 +31,11 @@ public class httpClient {
     DefaultHttpClient httpClient;
 
     public httpClient() {
+        String UA = "Mozilla/5.0 (Linux; Android 4.3; GT-I9505 Build/JSS15J) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/32.0.1700.72 Mobile Safari/537.36 OPR/19.0.1340.69721";
         DefaultHttpClient client = new DefaultHttpClient();
         ClientConnectionManager mgr = client.getConnectionManager();
         HttpParams params = client.getParams();
+        params.setParameter(CoreProtocolPNames.USER_AGENT, UA);
         httpClient = new DefaultHttpClient(new ThreadSafeClientConnManager(params,
                 mgr.getSchemeRegistry()), params);
     }
@@ -104,17 +109,20 @@ public class httpClient {
         return sb.toString();
     }
 
-    public String getCookies() {
-        if (httpClient == null||httpClient.getCookieStore() == null) return "";
-        else {
+//    public String getCookies() {
+//        if (httpClient == null||httpClient.getCookieStore() == null) return "";
+//        else {
 //            String s=null;
-            CookieStore store = httpClient.getCookieStore();
+//            CookieStore store = httpClient.getCookieStore();
 //            for(Cookie cookie: store.getCookies()){
 //                String cs = cookie.getName()+"="+cookie.getValue();
 //                s = s==null?cs:s+"; "+cs;
 //            }
-//           // return s;
-            return store.toString();
-        }
+//            return s;
+//           // return store.toString();
+//        }
+//    }
+    public List<Cookie> getCookies() {
+        return httpClient == null?null:httpClient.getCookieStore().getCookies();
     }
 }

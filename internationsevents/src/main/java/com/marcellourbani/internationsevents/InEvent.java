@@ -38,7 +38,7 @@ public class InEvent {
     }
     InEvent(Element e) {
         try {
-            final URL INURL = new URL("http://www.internations.org/start");
+            final URL INURL = new URL(InternationsBot.BASEURL);
             mIconUrl = getAttr(e.select("p.guide-photo img"), 0, "src");
             Elements tmp = e.select("div.guide-entry p");
             if(tmp!=null&&tmp.size()>=2&&!tmp.get(1).hasClass("guide-name"))

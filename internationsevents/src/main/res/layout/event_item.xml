@@ -8,52 +8,79 @@
         android:textStyle="bold"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_alignParentTop="true"
         android:text="Title"
-        android:layout_alignParentLeft="true" />
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentTop="true"
+        android:layout_toLeftOf="@+id/eidate" />
     <ImageView
         android:layout_width="50dip"
         android:layout_height="50dip"
         android:id="@+id/eiicon"
         android:layout_below="@+id/eititle"
+        android:layout_marginTop="10dp"
         android:layout_alignParentLeft="true" />
 
-
+    <ImageView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/eilocationic"
+        android:src="@drawable/ic_menu_directions"
+        android:layout_below="@+id/eigroup"
+        android:layout_marginTop="10dp"
+        android:layout_alignRight="@+id/eitime" />
 
     <TextView android:id="@+id/eilocation"
         android:textSize="16sp"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:text="Location"
-        android:layout_alignTop="@+id/eistart"
-        android:layout_toRightOf="@+id/eistart" />
+        android:gravity="center_vertical"
+        android:layout_alignBottom="@+id/eilocationic"
+        android:layout_alignParentLeft="true"
+        android:layout_marginTop="10dp"
+        android:layout_toLeftOf="@+id/eilocationic"
+        android:layout_below="@+id/eigroup" />
 
     <TextView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceSmall"
-        android:text="Start"
-        android:id="@+id/eistart"
-        android:layout_alignTop="@+id/eiicon"
-        android:layout_toRightOf="@+id/eiicon" />
-
+        android:text="DATE      "
+        android:id="@+id/eidate"
+        android:textStyle="bold"
+        android:fontFamily="monospace"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentRight="true" />
     <TextView
-        android:layout_width="fill_parent"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:text="TIME      "
+        android:id="@+id/eitime"
+        android:textStyle="bold"
+        android:fontFamily="monospace"
+        android:layout_below="@+id/eidate"
+        android:layout_alignParentRight="true" />
+    <TextView
+        android:layout_width="wrap_content"
         android:layout_height="wrap_content"
         android:textAppearance="?android:attr/textAppearanceSmall"
         android:text="Group"
         android:id="@+id/eigroup"
-        android:layout_below="@+id/eilocation"
-        android:layout_toRightOf="@+id/eiicon"
-        android:layout_toLeftOf="@+id/eigoing" />
+        android:layout_below="@+id/eiicon"
+        android:layout_marginTop="10dp"
+        android:layout_alignParentLeft="true"
+        android:layout_alignRight="@+id/eitime" />
 
-    <CheckBox
+    <Button
+        style="?android:attr/buttonStyleSmall"
         android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="Going"
-        android:id="@+id/eigoing"
-        android:checked="false"
-        android:layout_below="@+id/eilocation"
+        android:layout_height="35dp"
+        android:text="RSVP"
+        android:id="@+id/eirsvp"
+        android:layout_marginTop="10dp"
+        android:layout_below="@+id/eitime"
         android:layout_alignParentRight="true" />
+
 
 </RelativeLayout>

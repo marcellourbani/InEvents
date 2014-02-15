@@ -3,9 +3,12 @@ package com.marcellourbani.internationsevents;
 import android.app.Application;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.os.Bundle;
 import android.preference.PreferenceManager;
 
 import org.apache.http.NameValuePair;
+import org.apache.http.client.CookieStore;
+import org.apache.http.cookie.Cookie;
 import org.apache.http.message.BasicNameValuePair;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
@@ -17,6 +20,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class InternationsBot {
+    public static final String BASEURL ="http://www.internations.org";
+    private static final String MYEVENTSURL="http://www.internations.org/events/my?ref=he_ev_me",
+                                SIGNUPURL = "https://www.internations.org/users/signin";
     private final String mUser;
     private final String mPass;
     httpClient mClient;
@@ -54,7 +60,7 @@ public class InternationsBot {
 
     public void readMyEvents() {
         try {
-            String ev = mClient.geturl_string("http://www.internations.org/events/my?ref=he_ev_me");
+            String ev = mClient.geturl_string(MYEVENTSURL);
             Document doc = Jsoup.parse(ev);
             Elements elements = doc.select("#my_upcoming_events_table tbody tr");
             mEvents.clear();
@@ -74,7 +80,7 @@ public class InternationsBot {
                     List<NameValuePair> parms = new ArrayList<NameValuePair>();
                     parms.add(new BasicNameValuePair("user_email", mUser));
                     parms.add(new BasicNameValuePair("user_password", mPass));
-                    mSigned = mClient.posturl_string("https://www.internations.org/users/signin", parms)
+                    mSigned = mClient.posturl_string(SIGNUPURL, parms)
                             .indexOf("Incorrect email or password") <= 0;
                 } catch (Throwable e) {
                     mSigned = false;
@@ -88,7 +94,13 @@ public class InternationsBot {
         return mEvents;
     }
 
-    public String getCookies() {
-        return mClient==null?"":mClient.getCookies();
+    public Bundle getCookies() {
+        Bundle b=new Bundle();
+        List<Cookie> cookies;
+        if(( cookies = mClient==null?null:mClient.getCookies())!=null){
+          for(Cookie cookie:cookies)
+              b.putString(cookie.getName(), cookie.getValue() + "" + "; domain=" + cookie.getDomain());
+        }
+        return b;
     }
 }

@@ -77,12 +77,13 @@ public class InCalendar {
             return;
         ContentResolver contentResolver = context.getContentResolver();
         Cursor cursor = contentResolver.query(Events.CONTENT_URI, new String[]{Events._ID,Events.DESCRIPTION,Events.CUSTOM_APP_URI},
-                Events.CALENDAR_ID + " = ?" ,
-               new String[]{cal}, null);
+                Events.CALENDAR_ID + " = ? AND "+ Events.CUSTOM_APP_URI + " = ?",
+               new String[]{cal,event.mEventUrl}, null);
         boolean updated = false;
         while(cursor.moveToNext()) {
             final int APPURL = cursor.getColumnIndex(CalendarContract.Events.CUSTOM_APP_URI);
             if(cursor.getString(APPURL)!=null&&cursor.getString(APPURL).equals(event.mEventUrl)){
+                //TODO:only update if needed...
                 updated = contentResolver.update(Events.CONTENT_URI,getEventValues(context,event),
                         "("+Events._ID+" = ?)",new String[]{cursor.getString(0)})>0;
               break;
