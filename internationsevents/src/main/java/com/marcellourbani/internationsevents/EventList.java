@@ -1,3 +1,17 @@
+/*
+ * In Events for Android
+ *
+ * Copyright (C) 2014 Marcello Urbani.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 3 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
 package com.marcellourbani.internationsevents;
 
 import android.app.Activity;
@@ -9,7 +23,6 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.preference.PreferenceManager;
 import android.os.Bundle;
-import android.provider.Browser;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -17,8 +30,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ArrayAdapter;
 import android.widget.Button;
-import android.widget.CheckBox;
-import android.widget.CompoundButton;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
@@ -34,8 +45,6 @@ public class EventList extends Activity {
     protected MenuItem refresh;
 
     protected enum Operations {LOAD, RSVPYES, RSVPNO}
-
-    ;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -124,7 +133,7 @@ public class EventList extends Activity {
                             InCalendar.modifyEvent(getActivity(), event);
                     }
                     ArrayAdapter<InEvent> aa = new ArrayAdapter<InEvent>(getActivity(), R.layout.fragment_event_list, mIbot.getEvents()) {
-                        final DateFormat df = new SimpleDateFormat("dd.MM.yy kk:mm")
+                        final DateFormat df = new SimpleDateFormat("dd.MM.yy")
                                 ,
                                 tf = new SimpleDateFormat("kk:mm");
 
@@ -145,7 +154,6 @@ public class EventList extends Activity {
                                 TextView starttm = (TextView) view.findViewById(R.id.eitime);
                                 TextView group = (TextView) view.findViewById(R.id.eigroup);
                                 ImageView icon = (ImageView) view.findViewById(R.id.eiicon);
-                                rsvp.setText(event.mSubscribed ? "Going" : "Not going");
                                 startdt.setText(event.mStart != null ? df.format(event.mStart.getTime()) : "");
                                 starttm.setText(event.mStart != null ? tf.format(event.mStart.getTime()) : "");
                                 group.setText(event.mGroup);
@@ -154,6 +162,7 @@ public class EventList extends Activity {
                                 location.setText(event.mLocation);
                                 if (event.mSubscribed) {
                                     rsvp.setClickable(false);
+                                    rsvp.setEnabled(false);
                                     rsvp.setText("Going");
                                 } else
                                     rsvp.setOnClickListener(new View.OnClickListener() {
@@ -163,12 +172,14 @@ public class EventList extends Activity {
                                         }
                                     });
                                 if (event.mSubscribed) rsvp.setClickable(false);
-                                title.setOnClickListener(new View.OnClickListener() {
+                                View.OnClickListener startweb = new View.OnClickListener() {
                                     @Override
                                     public void onClick(View view) {
                                         showevent(event);
                                     }
-                                });
+                                };
+                                title.setOnClickListener(startweb);
+                                icon.setOnClickListener(startweb);
                                 View.OnClickListener startmap = new View.OnClickListener() {
                                     @Override
                                     public void onClick(View view) {

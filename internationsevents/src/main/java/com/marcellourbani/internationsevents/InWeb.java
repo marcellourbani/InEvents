@@ -1,3 +1,18 @@
+/*
+ * In Events for Android
+ *
+ * Copyright (C) 2014 Marcello Urbani.
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 3 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ */
+
 package com.marcellourbani.internationsevents;
 
 import android.app.Activity;
@@ -21,6 +36,7 @@ import android.webkit.CookieManager;
 import android.webkit.CookieSyncManager;
 import android.webkit.HttpAuthHandler;
 import android.webkit.SslErrorHandler;
+import android.webkit.WebChromeClient;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
@@ -37,7 +53,33 @@ public class InWeb extends Activity {
             view.loadUrl(url);
             return true;
         }
+
+        @Override
+        public void onPageStarted(WebView view, String url, Bitmap favicon) {
+            super.onPageStarted(view, url, favicon);
+        }
+
+        @Override
+        public void onLoadResource(WebView view, String url) {
+            super.onLoadResource(view, url);
+        }
+
+        @Override
+        public void onFormResubmission (WebView view, Message dontResend, Message resend){
+            super.onFormResubmission(view, dontResend, resend);
+        }
+
+        @Override
+        public boolean shouldOverrideKeyEvent(WebView view, KeyEvent event) {
+            return super.shouldOverrideKeyEvent(view, event);
+        }
+
+        @Override
+        public void onUnhandledKeyEvent(WebView view, KeyEvent event) {
+            super.onUnhandledKeyEvent(view, event);
+        }
     }
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -61,6 +103,7 @@ public class InWeb extends Activity {
             CookieSyncManager.getInstance().sync();
         }
         webview.setWebViewClient(new InsideWebViewClient());
+        webview.setWebChromeClient(new WebChromeClient());
         if (eventurl != null) {
             webview.loadUrl(eventurl);
         }
