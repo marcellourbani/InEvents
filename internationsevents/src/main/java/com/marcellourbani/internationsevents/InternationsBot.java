@@ -19,6 +19,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
+import android.util.Log;
 
 import org.apache.http.NameValuePair;
 import org.apache.http.client.CookieStore;
@@ -37,6 +38,7 @@ public class InternationsBot {
     public static final String BASEURL ="http://www.internations.org";
     private static final String MYEVENTSURL="http://www.internations.org/events/my?ref=he_ev_me",
                                 SIGNUPURL = "https://www.internations.org/users/signin";
+    private static final String INTAG = "IN_EVENTS";
     private final String mUser;
     private final String mPass;
     httpClient mClient;
@@ -53,16 +55,16 @@ public class InternationsBot {
     //TODO unsubscribe
     public boolean rsvp(InEvent event,boolean going){
         try {
+            ArrayList<NameValuePair> parms = new ArrayList<NameValuePair>();
             String url = event.getRsvpUrl(going);
-            if(going)
-               url = mClient.geturl_string(url);
+            if(going){
+                parms.add(new BasicNameValuePair("_method","PATCH"));
+                parms.add(new BasicNameValuePair("common_base_form[_token]",event.mToken));
+                url = mClient.posturl_string(url, parms);
+                //might have an error in div.flash
+                return url.matches("You are now attending this.*flash__close-button js-no-modal");
+            }
             else{
-//                _method	DELETE
-//                common_base_form[_token]	693022c0153c1f23757f834d5b8ad89dd99a7257
-//                redirectRoute	_activity_group_activity_get
-//                redirectRouteParameters[a...	470
-//                redirectRouteParameters[a...	62901
-                ArrayList<NameValuePair> parms = new ArrayList<NameValuePair>();
                 parms.add(new BasicNameValuePair("_method","DELETE"));
                 url = mClient.posturl_string(url, parms);
             }
@@ -82,8 +84,13 @@ public class InternationsBot {
                 InEvent event = new InEvent(e);
                 mEvents.add(event);
             }
+//            elements = doc.select("#my_contacts_events_table tbody tr");
+//            for (Element e : elements) {
+//                InEvent event = new InEvent(e);
+//                mEvents.add(event);
+//            }
         } catch (IOException e) {
-            e.printStackTrace();
+            Log.d(INTAG, e.getMessage());
         }
     }
 //returns true if the web transaction was successful, sets mSigned based on the outcome

@@ -25,6 +25,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class InEvent {
+    static String mToken="";
     private Pattern mActPattern;
     private Pattern mEventPattern;
     private String mGroupId=null;
@@ -74,6 +75,10 @@ public class InEvent {
             tmp = e.select("td.col_city");
             mLocation = tmp.text();
             if(mLocation.length()>4 && mLocation.substring(0,3).equals("At ")) mLocation = mLocation.substring(3);
+            tmp = e.select("td.col_attend input#common_base_form__token");
+            String token=null;
+            if(tmp!=null&&tmp.size()>0) token = tmp.get(0).attr("value");
+            if(token!=null&& token.length()>0)mToken = token;
             tmp = e.select("td.col_datetime p.date");
             String startd = tmp.get(0).text();
             String endd = tmp.size() > 1 ? tmp.get(1).text() : startd;
@@ -90,7 +95,7 @@ public class InEvent {
                 mStop.setTime(df.parse(endd + " " + endt));
             }
         } catch (Throwable t) {
-
+            String mError = t.toString();
         }
     }
 }

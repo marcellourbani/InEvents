@@ -133,8 +133,7 @@ public class EventList extends Activity {
                             InCalendar.modifyEvent(getActivity(), event);
                     }
                     ArrayAdapter<InEvent> aa = new ArrayAdapter<InEvent>(getActivity(), R.layout.fragment_event_list, mIbot.getEvents()) {
-                        final DateFormat df = new SimpleDateFormat("dd.MM.yy")
-                                ,
+                        final DateFormat df = new SimpleDateFormat("dd.MM.yy"),
                                 tf = new SimpleDateFormat("kk:mm");
 
                         @Override
