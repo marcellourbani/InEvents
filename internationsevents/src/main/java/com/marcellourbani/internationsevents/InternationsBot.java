@@ -45,7 +45,7 @@ public class InternationsBot {
     ArrayList<InEvent> mEvents = new ArrayList<InEvent>();
     ArrayMap<String,InGroup> mGroups = new ArrayMap<String,InGroup>();
     private class Grouppage{
-        ArrayMap<String,InGroup> mGroups = new ArrayMap<String,InGroup>();;
+        ArrayMap<String,InGroup> mGroups = new ArrayMap<String,InGroup>();
         ArrayList<String> mPages = new ArrayList<String>();
     }
     public boolean passIsSet() {
@@ -73,7 +73,7 @@ public class InternationsBot {
             } else {
                 String method = going ? "PATCH" : "DELETE";
                 parms.add(new BasicNameValuePair("_method", "PATCH"));
-                parms.add(new BasicNameValuePair("common_base_form[_token]", event.mToken));
+                parms.add(new BasicNameValuePair("common_base_form[_token]", InApp.get().getInToken()));
                 parms.add(new BasicNameValuePair("redirectRoute", "_activity_group_activity_get"));
                 parms.add(new BasicNameValuePair("redirectRouteParameters[activityGroupId]", event.mGroup));
                 parms.add(new BasicNameValuePair("redirectRouteParameters[activityId]", event.mEventId));
@@ -89,7 +89,7 @@ public class InternationsBot {
             return false;
         }
     }
-    private Grouppage readMyGroupsPage(String url,boolean getPageList){
+    private Grouppage dlMyGroupsPage(String url, boolean getPageList){
         Grouppage page = new Grouppage();
         try {
             String text = mClient.geturl_string(url);
@@ -111,13 +111,23 @@ public class InternationsBot {
         }
         return page;
     }
-    public ArrayMap<String, InGroup> readMyGroups(){
-        Grouppage page1 = readMyGroupsPage("http://www.internations.org/activity-group/search/?activity_group_search[userActivityGroups]=1",true);
-
+    public ArrayMap<String, InGroup> dlMyGroups(){
+        Grouppage page1 = dlMyGroupsPage("http://www.internations.org/activity-group/search/?activity_group_search[userActivityGroups]=1", true);
+        for(InGroup g:page1.mGroups.values())mGroups.put(g.mId,g);
         for(String url:page1.mPages){
-            Grouppage page = readMyGroupsPage(url,false);
+            Grouppage page = dlMyGroupsPage(url, false);
+            for(InGroup g:page.mGroups.values())mGroups.put(g.mId,g);
         }
         return  mGroups;
+    }
+    public ArrayMap<String, InGroup> loadMyGroups(){
+        mGroups = InGroup.loadGroups();
+        //TODO:also load when too old, remove unsubscribed groups
+        if (mGroups.isEmpty()){
+            dlMyGroups();
+            for(InGroup g:mGroups.values())g.save();
+        }
+        return mGroups;
     }
     public void readMyEvents() {
         try {

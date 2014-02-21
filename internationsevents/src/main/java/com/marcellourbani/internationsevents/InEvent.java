@@ -25,7 +25,6 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class InEvent {
-    static String mToken="";
     private Pattern mActPattern;
     private Pattern mEventPattern;
     private String mGroupId=null;
@@ -81,7 +80,7 @@ public class InEvent {
             tmp = e.select("td.col_attend input#common_base_form__token");
             String token=null;
             if(tmp!=null&&tmp.size()>0) token = tmp.get(0).attr("value");
-            if(token!=null&& token.length()>0)mToken = token;
+            if(token!=null&& token.length()>0)InApp.get().setInToken(token);
             tmp = e.select("td.col_datetime p.date");
             String startd = tmp.get(0).text();
             String endd = tmp.size() > 1 ? tmp.get(1).text() : startd;
@@ -92,6 +91,7 @@ public class InEvent {
             if (endt != null && endd == null) endd = startd;
             DateFormat df = new SimpleDateFormat("MMM dd,yyyy kk:mm");
             mStart = new GregorianCalendar();
+            mStart.getTime().getTime();
             mStart.setTime(df.parse(startd + " " + startt));
             if (endd != null) {
                 mStop = new GregorianCalendar();

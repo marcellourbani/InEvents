@@ -17,7 +17,6 @@ package com.marcellourbani.internationsevents;
 import android.app.Activity;
 import android.app.ListFragment;
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -235,7 +234,7 @@ public class EventList extends Activity {
                             case LOAD:
                                 mIbot.readMyEvents();
                                 publishProgress();
-                                mIbot.readMyGroups();
+                                mIbot.loadMyGroups();
                                 break;
                             case RSVPNO:
                                 if (mIbot.rsvp(mEvent, false))
