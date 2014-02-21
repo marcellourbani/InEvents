@@ -118,7 +118,7 @@ public class EventList extends Activity {
         }
 
 
-        private class NetWorker extends AsyncTask<Operations, Void, Boolean> {
+        private class NetWorker extends AsyncTask<Operations, Integer, Boolean> {
             InEvent mEvent = null;
 
             @Override
@@ -224,7 +224,9 @@ public class EventList extends Activity {
                         Toast.makeText(getActivity().getApplication().getBaseContext(), "Unsubscribe not implemented yet", Toast.LENGTH_SHORT).show();
                 }
             }
-
+            protected void onProgressUpdate() {
+                onPostExecute(true);
+            }
             @Override
             protected Boolean doInBackground(Operations... ops) {
                 if (mIbot.sign()) {
@@ -232,6 +234,8 @@ public class EventList extends Activity {
                         switch (ops[0]) {
                             case LOAD:
                                 mIbot.readMyEvents();
+                                publishProgress();
+                                mIbot.readMyGroups();
                                 break;
                             case RSVPNO:
                                 if (mIbot.rsvp(mEvent, false))

@@ -29,7 +29,7 @@ public class InEvent {
     private Pattern mActPattern;
     private Pattern mEventPattern;
     private String mGroupId=null;
-    private String mEventId;
+    String mEventId;
     String mIconUrl, mTitle, mLocation, mEventUrl,mGroup;
     boolean mSubscribed;
     GregorianCalendar mStart, mStop;
@@ -50,6 +50,9 @@ public class InEvent {
             return "http://www.internations.org/activity-group/"+mGroupId+"/activity/"+mEventId+
                     "/attendance/"+(attend?"accept":"decline");
         }
+    }
+    public boolean isEvent(){
+        return mGroupId==null;
     }
     InEvent(Element e) {
         try {
