@@ -125,8 +125,9 @@ public class InCalendar {
         }
     }
 
-    public static void addCalendarsPreferences(Context context, ListPreference calendarPref) {
+    public static boolean addCalendarsPreferences(Context context, ListPreference calendarPref) {
         List<InCalendar> calendars = getCalendars(context);
+        if(calendars==null||calendars.size()==0)return false;
         String calendar = getDefaultCalendar(context);
         int idx=0;
         CharSequence[] entries = new CharSequence[calendars.size()];
@@ -139,5 +140,6 @@ public class InCalendar {
         calendarPref.setEntries(entries);
         calendarPref.setEntryValues(entryvalues);
         calendarPref.setValueIndex(idx);
+        return  true;
     }
 }

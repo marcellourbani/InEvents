@@ -34,18 +34,9 @@ public class InPreferences extends Activity {
             super.onCreate(savedInstanceState);
             addPreferencesFromResource(R.xml.preferences);
             ListPreference calendarPref = (ListPreference) findPreference("pr_calendar");
-            InCalendar.addCalendarsPreferences(getActivity(),calendarPref);
+            if(!InCalendar.addCalendarsPreferences(getActivity(),calendarPref))
+                calendarPref.setEnabled(false);
         }
-    }
-    @Override
-    public void onBackPressed() {
-        Bundle bundle = new Bundle();
-        bundle.putString("X", "Y");
-
-        Intent mIntent = new Intent();
-        mIntent.putExtras(bundle);
-        setResult(RESULT_OK, mIntent);
-        super.onBackPressed();
     }
     @Override
     public void finish() {

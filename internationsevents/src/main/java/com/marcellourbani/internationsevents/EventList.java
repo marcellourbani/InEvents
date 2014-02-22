@@ -121,11 +121,30 @@ public class EventList extends Activity {
                 mNw.execute(Operations.REFRESH);
             else  mNw.execute(Operations.LOAD);
         }
-
+        private class LinkWorker extends AsyncTask<InEvent, Integer, Boolean> {
+            InEvent mEvent;
+            @Override
+            protected void onPostExecute(Boolean o) {
+                if(o){
+                    Intent web = new Intent(getActivity(), InWeb.class);
+                    web.putExtra(InWeb.EVENT_URL, mEvent.mEventUrl);
+                    web.putExtra(InWeb.CURRENT_COOKIES, mIbot.getCookies());
+                    startActivity(web);
+                }else
+                Toast.makeText(getActivity().getApplication().getBaseContext(), "Login failed", Toast.LENGTH_SHORT).show();
+            }
+            @Override
+            protected Boolean doInBackground(InEvent...inEvents) {
+                mEvent = inEvents[0];
+                return mIbot.sign();
+            }
+        }
 
         private class NetWorker extends AsyncTask<Operations, Integer, Boolean> {
             InEvent mEvent = null;
             boolean needRefresh = false;
+            private Operations mOperation;
+
             @Override
             protected void onPostExecute(Boolean o) {
                 super.onPostExecute(o);
@@ -213,10 +232,8 @@ public class EventList extends Activity {
             }
 
             private void showevent(InEvent event) {
-                Intent web = new Intent(getActivity(), InWeb.class);
-                web.putExtra(InWeb.EVENT_URL, event.mEventUrl);
-                web.putExtra(InWeb.CURRENT_COOKIES, mIbot.getCookies());
-                startActivity(web);
+                LinkWorker worker = new LinkWorker();
+                worker.execute(event);
             }
 
             public void rsvp(InEvent event, boolean going) {
