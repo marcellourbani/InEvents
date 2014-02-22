@@ -73,7 +73,10 @@ public class EventList extends Activity {
         mFrag.loadevents(false);
         return true;
     }
-
+    void setProgressIndicator(boolean on){
+        if(refresh!=null)
+          refresh.setActionView(on?R.layout.actionbar_indeterminate_progress:null);
+    }
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle action bar item clicks here. The action bar will
@@ -114,8 +117,7 @@ public class EventList extends Activity {
 
         public void loadevents(boolean refresh) {
             EventList el = ((EventList) getActivity());
-            if (el != null && el.refresh != null)
-                el.refresh.setActionView(R.layout.actionbar_indeterminate_progress);
+            el.setProgressIndicator(true);
             mNw = new NetWorker();
             if (refresh)
                 mNw.execute(Operations.REFRESH);
@@ -125,6 +127,7 @@ public class EventList extends Activity {
             InEvent mEvent;
             @Override
             protected void onPostExecute(Boolean o) {
+                ((EventList)getActivity()).setProgressIndicator(false);
                 if(o){
                     Intent web = new Intent(getActivity(), InWeb.class);
                     web.putExtra(InWeb.EVENT_URL, mEvent.mEventUrl);
@@ -149,6 +152,7 @@ public class EventList extends Activity {
             protected void onPostExecute(Boolean o) {
                 super.onPostExecute(o);
                 EventList el = ((EventList) getActivity());
+                el.setProgressIndicator(false);
                 if (el != null && el.refresh != null)
                     el.refresh.setActionView(null);
                 if (o) {
@@ -233,6 +237,7 @@ public class EventList extends Activity {
 
             private void showevent(InEvent event) {
                 LinkWorker worker = new LinkWorker();
+                ((EventList)getActivity()).setProgressIndicator(true);
                 worker.execute(event);
             }
 
