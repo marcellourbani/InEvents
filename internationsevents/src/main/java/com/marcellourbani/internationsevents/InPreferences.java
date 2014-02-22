@@ -15,6 +15,7 @@
 package com.marcellourbani.internationsevents;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.os.Bundle;
 import android.preference.ListPreference;
 import android.preference.PreferenceFragment;
@@ -36,5 +37,21 @@ public class InPreferences extends Activity {
             InCalendar.addCalendarsPreferences(getActivity(),calendarPref);
         }
     }
+    @Override
+    public void onBackPressed() {
+        Bundle bundle = new Bundle();
+        bundle.putString("X", "Y");
 
+        Intent mIntent = new Intent();
+        mIntent.putExtras(bundle);
+        setResult(RESULT_OK, mIntent);
+        super.onBackPressed();
+    }
+    @Override
+    public void finish() {
+        Intent data = new Intent();
+        setResult(RESULT_OK, data);
+
+        super.finish();
+    }
 }

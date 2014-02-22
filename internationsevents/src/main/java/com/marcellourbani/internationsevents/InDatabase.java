@@ -59,6 +59,7 @@ public class InDatabase {
                     + "iconurl      text   ," + "location     text   ,"
                     + "subscribed   integer," + "eventurl     text   ,"
                     + "starttime    integer," + "endtime      integer,"
+                    + "myevent      integer," + "groupdesc    text   ,"
                     + "primary key (id));");
             database.execSQL("CREATE TABLE IF NOT EXISTS refreshes ("
                     + "id           integer," + "lastrun      integer,"

@@ -14,28 +14,21 @@
  */
 package com.marcellourbani.internationsevents;
 
-import android.annotation.TargetApi;
-import android.app.Activity;
 import android.content.ContentResolver;
-import android.content.ContentUris;
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.res.Resources;
 import android.database.Cursor;
 import android.net.Uri;
-import android.os.Build;
 import android.preference.ListPreference;
 import android.preference.PreferenceManager;
 import android.provider.CalendarContract;
 import android.provider.CalendarContract.Calendars;
 import android.provider.CalendarContract.Events;
-import android.provider.ContactsContract;
 
 import java.util.ArrayList;
-import java.util.Calendar;
 import java.util.List;
 import java.util.TimeZone;
-import java.util.prefs.Preferences;
 
 
 /**

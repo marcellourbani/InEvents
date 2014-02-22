@@ -20,8 +20,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
-import android.preference.PreferenceManager;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -42,8 +42,9 @@ public class EventList extends Activity {
     protected static InternationsBot mIbot;
     private static EventsFragment mFrag;
     protected MenuItem refresh;
+    private static final int SETPASSWORD = 2001;
 
-    protected enum Operations {LOAD, RSVPYES, RSVPNO}
+    protected enum Operations {LOAD, RSVPYES, RSVPNO,REFRESH}
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -51,7 +52,6 @@ public class EventList extends Activity {
         //TODO? no refresh when network not connected
         //TODO service
         //TODO? intent filter
-        //TODO? store events in database for offline access
         mIbot = new InternationsBot(PreferenceManager.getDefaultSharedPreferences(this));
         setContentView(R.layout.activity_event_list);
         mFrag = new EventsFragment(mIbot);
@@ -61,13 +61,16 @@ public class EventList extends Activity {
                     .commit();
         }
     }
-
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if(requestCode==SETPASSWORD && mIbot.passIsSet()&&mFrag!=null) mFrag.loadevents(true);
+    }
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.event_list, menu);
         refresh = menu.findItem(R.id.action_refresh);
-        mFrag.loadevents();
+        mFrag.loadevents(false);
         return true;
     }
 
@@ -82,7 +85,7 @@ public class EventList extends Activity {
                 startActivity(new Intent(this, InPreferences.class));
                 return true;
             case R.id.action_refresh:
-                mFrag.loadevents();
+                mFrag.loadevents(true);
                 return true;
         }
         return super.onOptionsItemSelected(item);
@@ -104,22 +107,25 @@ public class EventList extends Activity {
         @Override
         public View onCreateView(LayoutInflater inflater, ViewGroup container,
                                  Bundle savedInstanceState) {
-            View rootView = inflater.inflate(R.layout.fragment_event_list, container, false);
+            View rootView;
+            rootView = inflater.inflate(R.layout.fragment_event_list, container, false);
             return rootView;
         }
 
-        public void loadevents() {
+        public void loadevents(boolean refresh) {
             EventList el = ((EventList) getActivity());
             if (el != null && el.refresh != null)
                 el.refresh.setActionView(R.layout.actionbar_indeterminate_progress);
             mNw = new NetWorker();
-            mNw.execute(Operations.LOAD);
+            if (refresh)
+                mNw.execute(Operations.REFRESH);
+            else  mNw.execute(Operations.LOAD);
         }
 
 
         private class NetWorker extends AsyncTask<Operations, Integer, Boolean> {
             InEvent mEvent = null;
-
+            boolean needRefresh = false;
             @Override
             protected void onPostExecute(Boolean o) {
                 super.onPostExecute(o);
@@ -153,7 +159,7 @@ public class EventList extends Activity {
                                 TextView group = (TextView) view.findViewById(R.id.eigroup);
                                 ImageView icon = (ImageView) view.findViewById(R.id.eiicon);
                                 startdt.setText(event.mStart != null ? df.format(event.mStart.getTime()) : "");
-                                starttm.setText(event.mStart != null ? tf.format(event.mStart.getTime()) : "");
+                                starttm.setText(event.mStart != null && event.mMine? tf.format(event.mStart.getTime()) : "");
                                 group.setText(event.mGroup);
                                 Picasso.with(getActivity()).load(event.mIconUrl).into(icon);
                                 title.setText(event.mTitle);
@@ -184,16 +190,20 @@ public class EventList extends Activity {
                                         showmap(event);
                                     }
                                 };
-                                locicon.setOnClickListener(startmap);
-                                location.setOnClickListener(startmap);
+                                if(event.mLocation!=null && event.mLocation.length()>0){
+                                  locicon.setOnClickListener(startmap);
+                                  location.setOnClickListener(startmap);
+                                }
                             }
                             return view;
                         }
                     };
                     EventsFragment.this.setListAdapter(aa);
                     aa.notifyDataSetChanged();
+                    if (needRefresh)
+                        loadevents(true);
                 } else if (!mIbot.passIsSet()) {
-                    startActivity(new Intent(getActivity(), InPreferences.class));
+                    getActivity().startActivityForResult(new Intent(getActivity(), InPreferences.class), SETPASSWORD);
                 }
             }
             private void showmap(InEvent event){
@@ -224,25 +234,42 @@ public class EventList extends Activity {
                 }
             }
             protected void onProgressUpdate() {
-                onPostExecute(true);
+               // onPostExecute(true);
+            }
+            void refresh(){
+                mIbot.readMyEvents(false);//will save everything later
+                // publishProgress();
+                mIbot.readMyGroups();
+                mIbot.readGroupsEvents();
+                mIbot.saveEvents(true);
+                mIbot.saveGroups();
             }
             @Override
             protected Boolean doInBackground(Operations... ops) {
+                if(ops[0]==Operations.LOAD){
+                    mIbot.loadEvents();
+                    mIbot.loadMyGroups();
+                    needRefresh = mIbot.mEvents.isEmpty()||mIbot.isExpired(InternationsBot.Refreshkeys.EVENTS);
+                    return  true;
+                }
+                needRefresh = false;
                 if (mIbot.sign()) {
                     if (mIbot.mSigned)
                         switch (ops[0]) {
                             case LOAD:
-                                mIbot.readMyEvents();
-                                publishProgress();
+                                mIbot.loadEvents();
                                 mIbot.loadMyGroups();
+                                break;
+                            case REFRESH:
+                                refresh();
                                 break;
                             case RSVPNO:
                                 if (mIbot.rsvp(mEvent, false))
-                                    mIbot.readMyEvents();
+                                    mIbot.readMyEvents(true);
                                 break;
                             case RSVPYES:
                                 if (mIbot.rsvp(mEvent, true))
-                                    mIbot.readMyEvents();
+                                    mIbot.readMyEvents(true);
                                 break;
                         }
                     else

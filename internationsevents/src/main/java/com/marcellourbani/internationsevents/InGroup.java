@@ -22,6 +22,8 @@ import android.support.v4.util.ArrayMap;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
+import java.util.Date;
+
 /**
  * Created by Marcello on 20/02/14.
  */
@@ -77,5 +79,11 @@ public class InGroup {
             groups.put(g.mId,g);
         }
         return  groups;
+    }
+
+    public void delete() {
+        SQLiteDatabase db = InApp.get().getDB().getWrdb();
+        String[]key = new String[]{mId};
+        db.delete("groups","id = ?",key);
     }
 }
