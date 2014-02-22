@@ -34,7 +34,7 @@ public class InWeb extends Activity {
 
     public static final String EVENT_URL = "EVENTURL";
     public static final String CURRENT_COOKIES = "CUR_COOKIES";
-    private WebView web=null;
+    private WebView web = null;
 
     /* Class that prevents opening the Browser */
     private class InsideWebViewClient extends WebViewClient {
@@ -50,30 +50,27 @@ public class InWeb extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_in_web);
         web = (WebView) this.findViewById(R.id.inwebview);
-        if (savedInstanceState == null) {
-
-            String eventurl = getIntent().getStringExtra(EVENT_URL);
-            Bundle cookies = getIntent().getBundleExtra(CURRENT_COOKIES);
-            WebSettings settings = web.getSettings();
-            settings.setJavaScriptEnabled(true);
-            settings.setBuiltInZoomControls(true);
-            settings.setUseWideViewPort(true);
-            settings.setLoadWithOverviewMode(true);
-            settings.setSupportZoom(true);
-            web.setInitialScale(getScale());
-            if (cookies != null) {
-                CookieSyncManager.createInstance(this);
-                CookieManager cookieManager = CookieManager.getInstance();
-                for (String key : cookies.keySet()) {
-                    cookieManager.setCookie(InternationsBot.BASEURL, key + '=' + cookies.getString(key));
-                }
-                CookieSyncManager.getInstance().sync();
+        String eventurl = getIntent().getStringExtra(EVENT_URL);
+        Bundle cookies = getIntent().getBundleExtra(CURRENT_COOKIES);
+        WebSettings settings = web.getSettings();
+        settings.setJavaScriptEnabled(true);
+        settings.setBuiltInZoomControls(true);
+        settings.setUseWideViewPort(true);
+        settings.setLoadWithOverviewMode(true);
+        settings.setSupportZoom(true);
+        web.setInitialScale(getScale());
+        if (cookies != null) {
+            CookieSyncManager.createInstance(this);
+            CookieManager cookieManager = CookieManager.getInstance();
+            for (String key : cookies.keySet()) {
+                cookieManager.setCookie(InternationsBot.BASEURL, key + '=' + cookies.getString(key));
             }
-            web.setWebViewClient(new InsideWebViewClient());
-            web.setWebChromeClient(new WebChromeClient());
-            if (eventurl != null) {
-                web.loadUrl(eventurl);
-            }
+            CookieSyncManager.getInstance().sync();
+        }
+        web.setWebViewClient(new InsideWebViewClient());
+        web.setWebChromeClient(new WebChromeClient());
+        if (eventurl != null && savedInstanceState == null) {
+            web.loadUrl(eventurl);
         }
     }
 
@@ -85,19 +82,19 @@ public class InWeb extends Activity {
         val = val * 100d;
         return val.intValue();
     }
+
     @Override
-    protected void onSaveInstanceState(Bundle outState )
-    {
+    protected void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-        if(web!=null)web.saveState(outState);
+        if (web != null) web.saveState(outState);
     }
 
     @Override
-    protected void onRestoreInstanceState(Bundle savedInstanceState)
-    {
+    protected void onRestoreInstanceState(Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
-        if(web!=null)web.restoreState(savedInstanceState);
+        if (web != null) web.restoreState(savedInstanceState);
     }
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
