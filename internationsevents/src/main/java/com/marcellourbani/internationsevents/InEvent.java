@@ -28,6 +28,7 @@ import java.net.URL;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -196,8 +197,9 @@ public class InEvent {
 
     static ArrayMap<String, InEvent> loadEvents() {
         SQLiteDatabase db = InApp.get().getDB().getWrdb();
+        Long mintime = (new Date()).getTime()-36000000;//10 hours ago
         ArrayMap<String, InEvent> events = new ArrayMap<String, InEvent>();
-        Cursor c = db.rawQuery("select * from events;", null);
+        Cursor c = db.query(false,"events",new String[]{"*"},"starttime >= ?",new String[]{mintime.toString()},null,null,null,null);
         while (c != null && c.moveToNext()) {
             InEvent event = new InEvent(c);
             events.put(event.mEventId, event);

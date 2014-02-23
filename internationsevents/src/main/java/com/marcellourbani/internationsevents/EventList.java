@@ -75,7 +75,10 @@ public class EventList extends Activity {
     }
     void setProgressIndicator(boolean on){
         if(refresh!=null)
-          refresh.setActionView(on?R.layout.actionbar_indeterminate_progress:null);
+            if(on)
+               refresh.setActionView(R.layout.actionbar_indeterminate_progress);
+            else
+               refresh.setActionView(null);
     }
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
@@ -117,7 +120,7 @@ public class EventList extends Activity {
 
         public void loadevents(boolean refresh) {
             EventList el = ((EventList) getActivity());
-            el.setProgressIndicator(true);
+            if(el!=null)el.setProgressIndicator(true);
             mNw = new NetWorker();
             if (refresh)
                 mNw.execute(Operations.REFRESH);
@@ -127,7 +130,8 @@ public class EventList extends Activity {
             InEvent mEvent;
             @Override
             protected void onPostExecute(Boolean o) {
-                ((EventList)getActivity()).setProgressIndicator(false);
+                EventList el = ((EventList)getActivity());
+                if(el!=null)el.setProgressIndicator(false);
                 if(o){
                     Intent web = new Intent(getActivity(), InWeb.class);
                     web.putExtra(InWeb.EVENT_URL, mEvent.mEventUrl);
@@ -152,9 +156,7 @@ public class EventList extends Activity {
             protected void onPostExecute(Boolean o) {
                 super.onPostExecute(o);
                 EventList el = ((EventList) getActivity());
-                el.setProgressIndicator(false);
-                if (el != null && el.refresh != null)
-                    el.refresh.setActionView(null);
+                if(el!=null)el.setProgressIndicator(false);
                 if (o) {
                     for (InEvent event : mIbot.getEvents()) {
                         if (event.mSubscribed)
