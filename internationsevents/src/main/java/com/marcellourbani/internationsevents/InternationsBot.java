@@ -95,7 +95,7 @@ public class InternationsBot {
     //TODO unsubscribe
     public boolean rsvp(InEvent event, boolean going) {
         try {
-            if(!sign())return false;
+            if (!sign()) return false;
             ArrayList<NameValuePair> parms = new ArrayList<NameValuePair>();
             String url = event.getRsvpUrl(going);
             String result;
@@ -107,18 +107,21 @@ public class InternationsBot {
                     return result.matches("Your attendance to event.*has been cancelled.*flash__close-button js-no-modal");
             } else {
                 String token = InApp.get().getInToken();
-                if(token==null||token.length()==0){
+                if (token == null || token.length() == 0) {
                     String evText = mClient.geturl_string(event.mEventUrl);
-                    Matcher mat =Pattern.compile("common_base_form__token[^>]*value=\"([^\"]*)").matcher(evText);
-                   if(mat.find())token = mat.group(1);
+                    Matcher mat = Pattern.compile("common_base_form__token[^>]*value=\"([^\"]*)").matcher(evText);
+                    if (mat.find()) token = mat.group(1);
                 }
-                String method = going ? "PATCH" : "DELETE";
-                parms.add(new BasicNameValuePair("_method", method));
+                if (event.beenInvited()) {
+                    String method = going ? "PATCH" : "DELETE";
+                    parms.add(new BasicNameValuePair("_method", method));
+                }
                 parms.add(new BasicNameValuePair("common_base_form[_token]", token));
                 parms.add(new BasicNameValuePair("redirectRoute", "_activity_group_activity_get"));
                 parms.add(new BasicNameValuePair("redirectRouteParameters[activityGroupId]", event.mGroupId));
                 parms.add(new BasicNameValuePair("redirectRouteParameters[activityId]", event.mEventId));
                 result = mClient.posturl_string(url, parms);
+                if (result.indexOf("error__sorry") > 0) return false;
                 if (going) {
                     return result.matches("You are now attending this.*flash__close-button js-no-modal")
                             || result.matches("You.re on the guest list");
@@ -188,7 +191,7 @@ public class InternationsBot {
 
     private void writeRefresh(Refreshkeys refk) {
         SQLiteDatabase db = InApp.get().getDB().getWrdb();
-        String[] key = new String[]{ refk.getKey().toString()};
+        String[] key = new String[]{refk.getKey().toString()};
         ContentValues values = new ContentValues();
         values.put("id", refk.getKey());
         values.put("lastrun", (new Date()).getTime());
@@ -233,14 +236,14 @@ public class InternationsBot {
                 events.put(event.mEventId, event);
                 mEvents.put(event.mEventId, event);
             }
-            //reset attendance3 if required
-            for(InEvent e:mEvents.values()){
-                if(e.mMine&&e.mSubscribed&&events.get(e.mEventId)==null){
-                    e.reset_attendance();
-                    events.put(e.mEventId,e);
+            //reset attendance if required
+            for (InEvent e : mEvents.values()) {
+                if (e.mMine && e.imGoing() && events.get(e.mEventId) == null) {
+                    e.set_attendance(false);
+                    events.put(e.mEventId, e);
                 }
             }
-            if(save)for(InEvent e:events.values())e.save();
+            if (save) for (InEvent e : events.values()) e.save();
         } catch (IOException e) {
             Log.d(INTAG, e.getMessage());
         }
@@ -292,7 +295,7 @@ public class InternationsBot {
     public ArrayList<InEvent> getEvents() {
         ArrayList<InEvent> events = new ArrayList<InEvent>();
         events.addAll(mEvents.values());
-        Collections.sort(events,new Comparator<InEvent>() {
+        Collections.sort(events, new Comparator<InEvent>() {
             @Override
             public int compare(InEvent e1, InEvent e2) {
                 return e1.mStart.compareTo(e2.mStart);
@@ -300,6 +303,7 @@ public class InternationsBot {
         });
         return events;
     }
+
     public Bundle getCookies() {
         Bundle b = new Bundle();
         List<Cookie> cookies;

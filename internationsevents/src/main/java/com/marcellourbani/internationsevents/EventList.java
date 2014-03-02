@@ -96,11 +96,43 @@ public class EventList extends Activity {
         }
         return super.onOptionsItemSelected(item);
     }
+    public void showmap(InEvent event){
+        Uri uri = Uri.parse("geo:0,0?q="+event.mLocation);
+        Intent intent = new Intent(android.content.Intent.ACTION_VIEW, uri);
+        startActivity(intent);
+    }
 
+    public void showevent(InEvent event) {
+        LinkWorker worker = new LinkWorker();
+        EventList.this.setProgressIndicator(true);
+        worker.execute(event);
+    }
+
+    public void rsvp(InEvent event, boolean going) {
+        mFrag.rsvp(event,going);
+    }
+    private class LinkWorker extends AsyncTask<InEvent, Integer, Boolean> {
+        InEvent mEvent;
+        @Override
+        protected void onPostExecute(Boolean o) {
+            EventList.this.setProgressIndicator(false);
+            if(o){
+                Intent web = new Intent(EventList.this, InWeb.class);
+                web.putExtra(InWeb.EVENT_URL, mEvent.mEventUrl);
+                web.putExtra(InWeb.CURRENT_COOKIES, mIbot.getCookies());
+                startActivity(web);
+            }else
+                Toast.makeText(EventList.this.getApplication().getBaseContext(), "Login failed", Toast.LENGTH_SHORT).show();
+        }
+        @Override
+        protected Boolean doInBackground(InEvent...inEvents) {
+            mEvent = inEvents[0];
+            return mIbot.sign();
+        }
+    }
     public static class EventsFragment extends ListFragment {
         protected static InternationsBot mIbot;
         private NetWorker mNw;
-
         public EventsFragment(InternationsBot bot) {
             mIbot = bot;
         }
@@ -126,24 +158,18 @@ public class EventList extends Activity {
                 mNw.execute(Operations.REFRESH);
             else  mNw.execute(Operations.LOAD);
         }
-        private class LinkWorker extends AsyncTask<InEvent, Integer, Boolean> {
-            InEvent mEvent;
-            @Override
-            protected void onPostExecute(Boolean o) {
-                EventList el = ((EventList)getActivity());
-                if(el!=null)el.setProgressIndicator(false);
-                if(o){
-                    Intent web = new Intent(getActivity(), InWeb.class);
-                    web.putExtra(InWeb.EVENT_URL, mEvent.mEventUrl);
-                    web.putExtra(InWeb.CURRENT_COOKIES, mIbot.getCookies());
-                    startActivity(web);
-                }else
-                Toast.makeText(getActivity().getApplication().getBaseContext(), "Login failed", Toast.LENGTH_SHORT).show();
-            }
-            @Override
-            protected Boolean doInBackground(InEvent...inEvents) {
-                mEvent = inEvents[0];
-                return mIbot.sign();
+
+        public void rsvp(InEvent event, boolean going) {
+            EventList el = (EventList) getActivity();
+            if (going) {
+                if (event.imGoing()) return;
+                el.setProgressIndicator(true);
+                mNw = new NetWorker();
+                mNw.mEvent = event;
+                mNw.execute(going ? Operations.RSVPYES : Operations.RSVPNO);
+            } else {
+                if (el.getApplication() != null)
+                    Toast.makeText(el.getApplication().getBaseContext(), "Unsubscribe not implemented yet", Toast.LENGTH_SHORT).show();
             }
         }
 
@@ -159,102 +185,16 @@ public class EventList extends Activity {
                 if(el!=null)el.setProgressIndicator(false);
                 if (o) {
                     for (InEvent event : mIbot.getEvents()) {
-                        if (event.mSubscribed)
+                        if (event.imGoing())
                             InCalendar.modifyEvent(getActivity(), event);
                     }
-                    ArrayAdapter<InEvent> aa = new ArrayAdapter<InEvent>(getActivity(), R.layout.fragment_event_list, mIbot.getEvents()) {
-                        final DateFormat df = new SimpleDateFormat("dd.MM.yy"),
-                                tf = new SimpleDateFormat("kk:mm");
-
-                        @Override
-                        public View getView(int position, View convertView, ViewGroup parent) {
-                            View view = convertView;
-                            if (view == null) {
-                                LayoutInflater inflater = (LayoutInflater) getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-                                view = inflater.inflate(R.layout.event_item, null);
-                            }
-                            final InEvent event = getItem(position);
-                            if (event != null) {
-                                TextView title = (TextView) view.findViewById(R.id.eititle);
-                                TextView location = (TextView) view.findViewById(R.id.eilocation);
-                                ImageView locicon = (ImageView) view.findViewById(R.id.eilocationic);
-                                Button rsvp = (Button) view.findViewById(R.id.eirsvp);
-                                TextView startdt = (TextView) view.findViewById(R.id.eidate);
-                                TextView starttm = (TextView) view.findViewById(R.id.eitime);
-                                TextView group = (TextView) view.findViewById(R.id.eigroup);
-                                ImageView icon = (ImageView) view.findViewById(R.id.eiicon);
-                                startdt.setText(event.mStart != null ? df.format(event.mStart.getTime()) : "");
-                                starttm.setText(event.mStart != null && event.mMine? tf.format(event.mStart.getTime()) : "");
-                                group.setText(event.mGroup);
-                                Picasso.with(getActivity()).load(event.mIconUrl).into(icon);
-                                title.setText(event.mTitle);
-                                location.setText(event.mLocation);
-                                if (event.mSubscribed) {
-                                    rsvp.setClickable(false);
-                                    rsvp.setEnabled(false);
-                                    rsvp.setText("Going");
-                                } else
-                                    rsvp.setOnClickListener(new View.OnClickListener() {
-                                        @Override
-                                        public void onClick(View view) {
-                                            rsvp(event, true);
-                                        }
-                                    });
-                                if (event.mSubscribed) rsvp.setClickable(false);
-                                View.OnClickListener startweb = new View.OnClickListener() {
-                                    @Override
-                                    public void onClick(View view) {
-                                        showevent(event);
-                                    }
-                                };
-                                title.setOnClickListener(startweb);
-                                icon.setOnClickListener(startweb);
-                                View.OnClickListener startmap = new View.OnClickListener() {
-                                    @Override
-                                    public void onClick(View view) {
-                                        showmap(event);
-                                    }
-                                };
-                                if(event.mLocation!=null && event.mLocation.length()>0){
-                                  locicon.setOnClickListener(startmap);
-                                  location.setOnClickListener(startmap);
-                                }
-                            }
-                            return view;
-                        }
-                    };
+                    EventAdapter aa = new EventAdapter(getActivity(), R.layout.fragment_event_list, mIbot.getEvents());
                     EventsFragment.this.setListAdapter(aa);
                     aa.notifyDataSetChanged();
                     if (needRefresh)
                         loadevents(true);
                 } else if (!mIbot.passIsSet()) {
                     getActivity().startActivityForResult(new Intent(getActivity(), InPreferences.class), SETPASSWORD);
-                }
-            }
-            private void showmap(InEvent event){
-                Uri uri = Uri.parse("geo:0,0?q="+event.mLocation);
-                Intent intent = new Intent(android.content.Intent.ACTION_VIEW, uri);
-                startActivity(intent);
-            }
-
-            private void showevent(InEvent event) {
-                LinkWorker worker = new LinkWorker();
-                ((EventList)getActivity()).setProgressIndicator(true);
-                worker.execute(event);
-            }
-
-            public void rsvp(InEvent event, boolean going) {
-                if (going) {
-                    if (event.mSubscribed) return;
-                    EventList el = ((EventList) getActivity());
-                    if (el != null && el.refresh != null)
-                        el.refresh.setActionView(R.layout.actionbar_indeterminate_progress);
-                    mNw = new NetWorker();
-                    mNw.mEvent = event;
-                    mNw.execute(going ? Operations.RSVPYES : Operations.RSVPNO);
-                } else {
-                    if (getActivity() != null && getActivity().getApplication() != null)
-                        Toast.makeText(getActivity().getApplication().getBaseContext(), "Unsubscribe not implemented yet", Toast.LENGTH_SHORT).show();
                 }
             }
             protected void onProgressUpdate() {

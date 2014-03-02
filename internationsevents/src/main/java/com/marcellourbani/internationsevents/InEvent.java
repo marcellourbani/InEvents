@@ -26,7 +26,6 @@ import org.jsoup.select.Elements;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.DateFormat;
-import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.GregorianCalendar;
@@ -39,8 +38,41 @@ public class InEvent {
     String mGroupId = null;
     String mEventId;
     String mIconUrl, mTitle, mLocation, mEventUrl, mGroup;
-    boolean mSubscribed, mMine, mSaved;
+
+    private SubscStatus mRsvp = SubscStatus.NOTGOING;
+    boolean mMine, mSaved;
     GregorianCalendar mStart, mStop;
+
+
+    private enum SubscStatus {
+        INVITED, GOING, NOTGOING;
+
+        public int toInt() {
+            switch (this) {
+                case GOING:
+                    return 11;
+                case INVITED:
+                    return 12;
+                case NOTGOING:
+                    return 10;
+                default:
+                    return 10;
+            }
+        }
+
+        public static SubscStatus FromDb(int i, boolean mine) {
+            switch (i) {
+                case 0:return mine?INVITED:NOTGOING;//old values in DB
+                case 1:
+                case 11:
+                    return GOING;
+                case 12:
+                    return INVITED;
+                default:
+                    return NOTGOING;
+            }
+        }
+    }
 
     private String getAttr(Elements els, int idx, String name) {
         try {
@@ -56,8 +88,10 @@ public class InEvent {
             return "http://www.internations.org/events/" +
                     (attend ? "signin/" : "signout/") + mEventId;
         } else {
-            return "http://www.internations.org/activity-group/" + mGroupId + "/activity/" + mEventId +
-                    "/attendance/";//+(attend?"accept":"decline");
+            String url = "http://www.internations.org/activity-group/" + mGroupId + "/activity/" + mEventId +
+                    "/attendance/";
+            if(mRsvp == SubscStatus.INVITED)url = url+(attend ? "accept" : "decline");
+            return  url;
         }
     }
 
@@ -74,8 +108,8 @@ public class InEvent {
             mEventUrl = getAbsoluteUrl(getAttr(tmp, 0, "href"));
             mTitle = tmp.get(0).text();
             Matcher mat = mActPattern.matcher(mEventUrl);
-            mat.find();
-            mEventId = mat.group(2);
+            if (mat.find())
+                mEventId = mat.group(2);
             String ts = e.select("p.date").get(0).text();
             DateFormat df = new SimpleDateFormat("dd MMMM yyyy");
             mMine = false;
@@ -96,9 +130,9 @@ public class InEvent {
         mTitle = c.getString(c.getColumnIndex("title"));
         mIconUrl = c.getString(c.getColumnIndex("iconurl"));
         mLocation = c.getString(c.getColumnIndex("location"));
-        mSubscribed = c.getInt(c.getColumnIndex("subscribed")) == 1;
-        mEventUrl = c.getString(c.getColumnIndex("eventurl"));
         mMine = c.getInt(c.getColumnIndex("myevent")) == 1;
+        mRsvp = SubscStatus.FromDb(c.getInt(c.getColumnIndex("subscribed")), mMine);
+        mEventUrl = c.getString(c.getColumnIndex("eventurl"));
         time = c.getLong(c.getColumnIndex("starttime"));
         mStart = new GregorianCalendar();
         mStart.setTimeInMillis(time);
@@ -132,7 +166,7 @@ public class InEvent {
                 mat = mEventPattern.matcher(mEventUrl);
                 if (mat.find()) mEventId = mat.group(1);
             }
-            mSubscribed = !(getAttr(e.select("span.already-guest img"), 0, "src").equals(""));
+            mRsvp = (getAttr(e.select("span.already-guest img"), 0, "src").equals("")) ? SubscStatus.INVITED : SubscStatus.GOING;
             tmp = e.select("td.col_city");
             mLocation = tmp.text();
             if (mLocation.length() > 4 && mLocation.substring(0, 3).equals("At "))
@@ -173,7 +207,7 @@ public class InEvent {
         values.put("title", mTitle);
         values.put("iconurl", mIconUrl);
         values.put("location", mLocation);
-        values.put("subscribed", mSubscribed ? 1 : 0);
+        values.put("subscribed", mRsvp.toInt());
         values.put("starttime", mStart.getTimeInMillis());
         values.put("endtime", mStop == null ? 0 : mStop.getTimeInMillis());
         values.put("eventurl", mEventUrl);
@@ -197,17 +231,22 @@ public class InEvent {
 
     static ArrayMap<String, InEvent> loadEvents() {
         SQLiteDatabase db = InApp.get().getDB().getWrdb();
-        Long mintime = (new Date()).getTime()-36000000;//10 hours ago
+        Long mintime = (new Date()).getTime() - 36000000;//10 hours ago
         ArrayMap<String, InEvent> events = new ArrayMap<String, InEvent>();
-        Cursor c = db.query(false,"events",new String[]{"*"},"starttime >= ?",new String[]{mintime.toString()},null,null,null,null);
+        Cursor c = db.query(false, "events", new String[]{"*"}, "starttime >= ?", new String[]{mintime.toString()}, null, null, null, null);
         while (c != null && c.moveToNext()) {
             InEvent event = new InEvent(c);
             events.put(event.mEventId, event);
         }
         return events;
     }
-
-    public void reset_attendance() {
-        mSubscribed = false;
+    public void set_attendance(boolean going) {
+        mRsvp = going?SubscStatus.GOING:SubscStatus.NOTGOING;
+    }
+    public boolean imGoing() {
+        return mRsvp == SubscStatus.GOING;
+    }
+    public boolean beenInvited() {
+        return mRsvp == SubscStatus.INVITED;
     }
 }
