@@ -16,7 +16,6 @@ package com.marcellourbani.internationsevents;
 
 import android.app.Activity;
 import android.app.ListFragment;
-import android.content.Context;
 import android.content.Intent;
 import android.net.Uri;
 import android.os.AsyncTask;
@@ -27,16 +26,6 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
-import android.widget.Button;
-import android.widget.ImageView;
-import android.widget.TextView;
-import android.widget.Toast;
-
-import com.squareup.picasso.Picasso;
-
-import java.text.DateFormat;
-import java.text.SimpleDateFormat;
 
 public class EventList extends Activity {
     protected static InternationsBot mIbot;
@@ -44,7 +33,7 @@ public class EventList extends Activity {
     protected MenuItem refresh;
     private static final int SETPASSWORD = 2001;
 
-    protected enum Operations {LOAD, RSVPYES, RSVPNO,REFRESH}
+    protected enum Operations {LOAD, RSVPYES, RSVPNO, REFRESH, REFRESHALL}
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -54,32 +43,40 @@ public class EventList extends Activity {
         //TODO? intent filter
         mIbot = new InternationsBot(PreferenceManager.getDefaultSharedPreferences(this));
         setContentView(R.layout.activity_event_list);
-        mFrag = new EventsFragment(mIbot);
-        if (savedInstanceState == null) {
+        final String EVFRAG = "EVFRAG";
+        mFrag = (EventsFragment) getFragmentManager().findFragmentByTag(EVFRAG);
+        if (savedInstanceState == null||mFrag==null) {
+            mFrag = new EventsFragment(mIbot);
+            mFrag.setRetainInstance(true);
             getFragmentManager().beginTransaction()
-                    .add(R.id.container, mFrag)
+                    .add(R.id.container, mFrag,EVFRAG)
                     .commit();
         }
     }
+
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if(requestCode==SETPASSWORD && mIbot.passIsSet()&&mFrag!=null) mFrag.loadevents(true);
+        if (requestCode == SETPASSWORD && mIbot.passIsSet() && mFrag != null)
+            mFrag.loadevents(true, true);
     }
+
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.event_list, menu);
         refresh = menu.findItem(R.id.action_refresh);
-        mFrag.loadevents(false);
+        mFrag.loadevents(false, false);
         return true;
     }
-    void setProgressIndicator(boolean on){
-        if(refresh!=null)
-            if(on)
-               refresh.setActionView(R.layout.actionbar_indeterminate_progress);
+
+    void setProgressIndicator(boolean on) {
+        if (refresh != null)
+            if (on)
+                refresh.setActionView(R.layout.actionbar_indeterminate_progress);
             else
-               refresh.setActionView(null);
+                refresh.setActionView(null);
     }
+
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         // Handle action bar item clicks here. The action bar will
@@ -91,13 +88,17 @@ public class EventList extends Activity {
                 startActivity(new Intent(this, InPreferences.class));
                 return true;
             case R.id.action_refresh:
-                mFrag.loadevents(true);
+                mFrag.loadevents(true, false);
+                return true;
+            case R.id.action_refresh_all:
+                mFrag.loadevents(true, true);
                 return true;
         }
         return super.onOptionsItemSelected(item);
     }
-    public void showmap(InEvent event){
-        Uri uri = Uri.parse("geo:0,0?q="+event.mLocation);
+
+    public void showmap(InEvent event) {
+        Uri uri = Uri.parse("geo:0,0?q=" + event.mLocation);
         Intent intent = new Intent(android.content.Intent.ACTION_VIEW, uri);
         startActivity(intent);
     }
@@ -109,30 +110,38 @@ public class EventList extends Activity {
     }
 
     public void rsvp(InEvent event, boolean going) {
-        mFrag.rsvp(event,going);
+        mFrag.rsvp(event, going);
     }
+
     private class LinkWorker extends AsyncTask<InEvent, Integer, Boolean> {
         InEvent mEvent;
+
         @Override
         protected void onPostExecute(Boolean o) {
             EventList.this.setProgressIndicator(false);
-            if(o){
+            if (o) {
                 Intent web = new Intent(EventList.this, InWeb.class);
                 web.putExtra(InWeb.EVENT_URL, mEvent.mEventUrl);
                 web.putExtra(InWeb.CURRENT_COOKIES, mIbot.getCookies());
                 startActivity(web);
-            }else
-                Toast.makeText(EventList.this.getApplication().getBaseContext(), "Login failed", Toast.LENGTH_SHORT).show();
+            } else
+                InError.get().showmax();
+            InError.get().clear();
         }
+
         @Override
-        protected Boolean doInBackground(InEvent...inEvents) {
+        protected Boolean doInBackground(InEvent... inEvents) {
+            InError.get().clear();
             mEvent = inEvents[0];
             return mIbot.sign();
         }
     }
+
     public static class EventsFragment extends ListFragment {
         protected static InternationsBot mIbot;
         private NetWorker mNw;
+        private EventAdapter eventAdapter;
+
         public EventsFragment(InternationsBot bot) {
             mIbot = bot;
         }
@@ -150,89 +159,101 @@ public class EventList extends Activity {
             return rootView;
         }
 
-        public void loadevents(boolean refresh) {
+        public void loadevents(boolean refresh, boolean all) {
             EventList el = ((EventList) getActivity());
-            if(el!=null)el.setProgressIndicator(true);
+            if (el != null) el.setProgressIndicator(true);
             mNw = new NetWorker();
-            if (refresh)
-                mNw.execute(Operations.REFRESH);
-            else  mNw.execute(Operations.LOAD);
+            if (refresh) {
+                if (all)
+                    mNw.execute(Operations.REFRESHALL);
+                else
+                    mNw.execute(Operations.REFRESH);
+            } else mNw.execute(Operations.LOAD);
         }
 
         public void rsvp(InEvent event, boolean going) {
             EventList el = (EventList) getActivity();
-            if (going) {
-                if (event.imGoing()) return;
-                el.setProgressIndicator(true);
-                mNw = new NetWorker();
-                mNw.mEvent = event;
-                mNw.execute(going ? Operations.RSVPYES : Operations.RSVPNO);
-            } else {
-                if (el.getApplication() != null)
-                    Toast.makeText(el.getApplication().getBaseContext(), "Unsubscribe not implemented yet", Toast.LENGTH_SHORT).show();
-            }
+            el.setProgressIndicator(true);
+            mNw = new NetWorker();
+            mNw.mEvent = event;
+            mNw.execute(going ? Operations.RSVPYES : Operations.RSVPNO);
         }
 
         private class NetWorker extends AsyncTask<Operations, Integer, Boolean> {
             InEvent mEvent = null;
-            boolean needRefresh = false;
+            boolean fromDB = false;
             private Operations mOperation;
 
             @Override
             protected void onPostExecute(Boolean o) {
                 super.onPostExecute(o);
                 EventList el = ((EventList) getActivity());
-                if(el!=null)el.setProgressIndicator(false);
+                if (el != null) el.setProgressIndicator(false);
                 if (o) {
                     for (InEvent event : mIbot.getEvents()) {
                         if (event.imGoing())
                             InCalendar.modifyEvent(getActivity(), event);
                     }
-                    EventAdapter aa = new EventAdapter(getActivity(), R.layout.fragment_event_list, mIbot.getEvents());
-                    EventsFragment.this.setListAdapter(aa);
-                    aa.notifyDataSetChanged();
-                    if (needRefresh)
-                        loadevents(true);
-                } else if (!mIbot.passIsSet()) {
-                    getActivity().startActivityForResult(new Intent(getActivity(), InPreferences.class), SETPASSWORD);
+                    eventAdapter = new EventAdapter(getActivity(), R.layout.fragment_event_list, mIbot.getEvents());
+                    EventsFragment.this.setListAdapter(eventAdapter);
+                    eventAdapter.notifyDataSetChanged();
+                    if (fromDB) {
+                        if (mIbot.mEvents.isEmpty() || mIbot.isExpired(InternationsBot.Refreshkeys.EVENTS))
+                            loadevents(true, true);
+                        else if (mIbot.isExpired(InternationsBot.Refreshkeys.MYEVENTS))
+                            loadevents(true, false);
+                    }
+                } else {
+                    InError.get().showmax();
+                    if (!mIbot.passIsSet() || InError.get().hasType(InError.ErrType.LOGIN)) {
+                        getActivity().startActivityForResult(new Intent(getActivity(), InPreferences.class), SETPASSWORD);
+                    }
                 }
             }
+
             protected void onProgressUpdate() {
-               // onPostExecute(true);
+                // onPostExecute(true);
             }
-            void refresh(){
-                mIbot.readMyEvents(false);//will save everything later
+
+            void refresh(boolean all) {
+                mIbot.readMyEvents(true);//will save everything later
                 // publishProgress();
-                mIbot.readMyGroups();
-                mIbot.readGroupsEvents();
-                mIbot.saveEvents(true);
-                mIbot.saveGroups();
+                if (all) {
+                    if (InError.isOk()) mIbot.readMyGroups();
+                    if (InError.isOk()) mIbot.saveGroups();
+                    if (InError.isOk()) mIbot.readGroupsEvents();
+                }
+                if (InError.isOk()) mIbot.saveEvents(all);
+
             }
+
             @Override
             protected Boolean doInBackground(Operations... ops) {
-                if(ops[0]==Operations.LOAD){
+                InError.get().clear();
+                if (ops[0] == Operations.LOAD) {
                     mIbot.loadEvents();
-                    mIbot.loadMyGroups();
-                    needRefresh = mIbot.mEvents.isEmpty()||mIbot.isExpired(InternationsBot.Refreshkeys.EVENTS);
-                    return  true;
+                    if (InError.isOk()) mIbot.loadMyGroups();
+                    fromDB = true;
+                    return InError.isOk();
                 }
-                needRefresh = false;
+                fromDB = false;
                 if (mIbot.sign()) {
                     if (mIbot.mSigned)
                         switch (ops[0]) {
-                            case LOAD:
-                                mIbot.loadEvents();
-                                mIbot.loadMyGroups();
-                                break;
                             case REFRESH:
-                                refresh();
+                                refresh(false);
+                                break;
+                            case REFRESHALL:
+                                refresh(true);
                                 break;
                             case RSVPNO:
-                                if (mIbot.rsvp(mEvent, false))
+                                mIbot.rsvp(mEvent, false);
+                                if (InError.isOk())
                                     mIbot.readMyEvents(true);
                                 break;
                             case RSVPYES:
-                                if (mIbot.rsvp(mEvent, true))
+                                mIbot.rsvp(mEvent, true);
+                                if ( InError.isOk())
                                     mIbot.readMyEvents(true);
                                 break;
                         }

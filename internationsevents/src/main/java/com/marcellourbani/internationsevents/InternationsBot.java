@@ -20,6 +20,7 @@ import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.support.v4.util.ArrayMap;
 import android.util.Log;
 
@@ -32,7 +33,10 @@ import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.charset.MalformedInputException;
+import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -58,7 +62,16 @@ public class InternationsBot {
         GROUPS, EVENTS, MYEVENTS;
 
         public long getLimit() {
-            return 24 * 3600000;
+            SharedPreferences pref = PreferenceManager.getDefaultSharedPreferences(InApp.get());
+            switch (this){
+                case GROUPS:
+                    return Integer.valueOf( pref.getString("pr_group_timeout","24")) * 3600000;
+                case EVENTS:
+                    return Integer.valueOf( pref.getString("pr_grev_timeout","24")) * 3600000;
+                case MYEVENTS:
+                    return Integer.valueOf( pref.getString("pr_myev_timeout","60")) * 60000;
+              default: return 24 * 3600000;
+            }
         }
 
         public Integer getKey() {
@@ -92,7 +105,6 @@ public class InternationsBot {
         mPass = sharedPref.getString("pr_password", "");
     }
 
-    //TODO unsubscribe
     public boolean rsvp(InEvent event, boolean going) {
         try {
             if (!sign()) return false;
@@ -112,8 +124,9 @@ public class InternationsBot {
                     Matcher mat = Pattern.compile("common_base_form__token[^>]*value=\"([^\"]*)").matcher(evText);
                     if (mat.find()) token = mat.group(1);
                 }
-                if (event.beenInvited()) {
-                    String method = going ? "PATCH" : "DELETE";
+                String method="";
+                if (event.beenInvited()||!going) {
+                    method = going ? "PATCH" : "DELETE";
                     parms.add(new BasicNameValuePair("_method", method));
                 }
                 parms.add(new BasicNameValuePair("common_base_form[_token]", token));
@@ -121,7 +134,23 @@ public class InternationsBot {
                 parms.add(new BasicNameValuePair("redirectRouteParameters[activityGroupId]", event.mGroupId));
                 parms.add(new BasicNameValuePair("redirectRouteParameters[activityId]", event.mEventId));
                 result = mClient.posturl_string(url, parms);
-                if (result.indexOf("error__sorry") > 0) return false;
+                //accepting invitation failed, try subscribing the event as not invited
+                //after the event was downloaded
+                //try subscribing without invitation
+                if((result.indexOf("error__sorry") > 0)&&going&&event.beenInvited()){
+                    event.getRsvpUrl(going,false);
+                    parms.clear();
+                    parms.add(new BasicNameValuePair("common_base_form[_token]", token));
+                    parms.add(new BasicNameValuePair("redirectRoute", "_activity_group_activity_get"));
+                    parms.add(new BasicNameValuePair("redirectRouteParameters[activityGroupId]", event.mGroupId));
+                    parms.add(new BasicNameValuePair("redirectRouteParameters[activityId]", event.mEventId));
+                    result = mClient.posturl_string(url, parms);
+                }
+                //if we still can't parse it
+                if (result.indexOf("error__sorry") > 0) {
+                    InError.get().add(InError.ErrType.FORMPROC, "Error changing RSVP, please try from website");
+                    return false;
+                }
                 if (going) {
                     return result.matches("You are now attending this.*flash__close-button js-no-modal")
                             || result.matches("You.re on the guest list");
@@ -129,9 +158,11 @@ public class InternationsBot {
                     return result.matches("Your attendance to the Activity has been cancelled.*flash__close-button js-no-modal");
                 }
             }
-        } catch (Throwable t) {
-            return false;
+        } catch (Throwable e) {
+            InError.get().add(InError.ErrType.NETWORK, "Error changing RSVP, check your network connection.\n" + e.getMessage());
+            Log.d(INTAG, e.getMessage());
         }
+        return false;
     }
 
     private Grouppage dlMyGroupsPage(String url, boolean getPageList) {
@@ -156,6 +187,7 @@ public class InternationsBot {
                 }
             }
         } catch (Exception e) {
+            InError.get().add(InError.ErrType.NETWORK,"Error downloading my groups.\n"+e.getMessage());
             Log.d(INTAG, e.getMessage());
         }
         return page;
@@ -165,6 +197,7 @@ public class InternationsBot {
         Grouppage page1 = dlMyGroupsPage("http://www.internations.org/activity-group/search/?activity_group_search[userActivityGroups]=1", true);
         for (InGroup g : page1.mGroups.values()) mGroups.put(g.mId, g);
         for (String url : page1.mPages) {
+            if(!InError.isOk())continue;
             Grouppage page = dlMyGroupsPage(url, false);
             for (InGroup g : page.mGroups.values()) mGroups.put(g.mId, g);
         }
@@ -212,7 +245,11 @@ public class InternationsBot {
     }
 
     public ArrayMap<String, InEvent> loadEvents() {
-        mEvents = InEvent.loadEvents();
+        try {
+            mEvents = InEvent.loadEvents();
+        } catch (Exception e) {
+            InError.get().add(InError.ErrType.DATABASE, "Error loading events from database\n" + e.getMessage());
+        }
         return mEvents;
     }
 
@@ -230,28 +267,43 @@ public class InternationsBot {
             String ev = extractTable(mClient.geturl_string(MYEVENTSURL), "my_upcoming_events_table");
             Document doc = Jsoup.parse(ev);
             Elements elements = doc.select("#my_upcoming_events_table tbody tr");
-            mEvents.clear();
-            for (Element e : elements) {
-                InEvent event = new InEvent(e);
+            for (Element evel : elements) {
+                try{
+                InEvent event = new InEvent(evel);
                 events.put(event.mEventId, event);
                 mEvents.put(event.mEventId, event);
+                } catch (MalformedURLException e) {
+                    InError.get().add(InError.ErrType.PARSE, "Error parsing my events URL" + e.getMessage());
+                    Log.d(INTAG, e.getMessage());
+                } catch (ParseException e) {
+                    InError.get().add(InError.ErrType.PARSE, "Error parsing my events" + e.getMessage());
+                    Log.d(INTAG, e.getMessage());
+                }
             }
+            if(!InError.isOk())return;
             //reset attendance if required
             for (InEvent e : mEvents.values()) {
-                if (e.mMine && e.imGoing() && events.get(e.mEventId) == null) {
+                InEvent e2 = events.get(e.mEventId);
+                if (e.imGoing() && events.get(e.mEventId) == null) {
                     e.set_attendance(false);
                     events.put(e.mEventId, e);
                 }
             }
-            if (save) for (InEvent e : events.values()) e.save();
+            if (save){
+                for (InEvent e : events.values()) e.save();
+                writeRefresh(Refreshkeys.MYEVENTS);
+            }
         } catch (IOException e) {
+            InError.get().add(InError.ErrType.NETWORK,"Error downloading my groups.\n"+e.getMessage());
             Log.d(INTAG, e.getMessage());
         }
     }
 
     public void readGroupsEvents() {
+        InGroup group=null;
         try {
-            for (InGroup group : mGroups.values()) {
+            for (InGroup grp : mGroups.values()) {
+                group = grp;
                 String url = BASEURL + "/activity-group/" + group.mId + "/activity/";
                 String activities = mClient.geturl_string(url);
                 Matcher m = Pattern.compile("(<ul[^>]*upcoming.*/ul>).*/.upcoming").matcher(activities);
@@ -270,6 +322,7 @@ public class InternationsBot {
                 }
             }
         } catch (IOException e) {
+            InError.get().add(InError.ErrType.NETWORK,"Error downloading events for group "+group.mDesc+".\n"+e.getMessage());
             Log.d(INTAG, e.getMessage());
         }
     }
@@ -284,8 +337,10 @@ public class InternationsBot {
                     parms.add(new BasicNameValuePair("user_password", mPass));
                     mSigned = mClient.posturl_string(SIGNUPURL, parms)
                             .indexOf("Incorrect email or password") <= 0;
+                    if(!mSigned)InError.get().add(InError.ErrType.LOGIN,"Error signing in, check your user and password");
                 } catch (Throwable e) {
                     mSigned = false;
+                    InError.get().add(InError.ErrType.NETWORK,"Error signing in, check your network connection.\n"+e.getMessage());
                     return false;
                 }
         }

@@ -13,4 +13,22 @@
     <ListPreference android:key="pr_calendar"
                     android:title="Calendar"
                     android:summary="To sync subscribed events"/>
+    <EditTextPreference
+        android:key="pr_myev_timeout"
+        android:summary="Time after which my events will be reloaded (minutes)"
+        android:title="My events expiration time"
+        android:numeric="integer"
+        android:defaultValue="60"/>
+    <EditTextPreference
+        android:key="pr_grev_timeout"
+        android:summary="Time after which events from my groups will be reloaded (hours)"
+        android:title="My group events expiration time"
+        android:numeric="integer"
+        android:defaultValue="24"/>
+    <EditTextPreference
+        android:key="pr_group_timeout"
+        android:summary="Time after which events from my groups will be reloaded (hours)"
+        android:title="My group subscriptions expiration time"
+        android:numeric="integer"
+        android:defaultValue="24"/>
 </PreferenceScreen>
