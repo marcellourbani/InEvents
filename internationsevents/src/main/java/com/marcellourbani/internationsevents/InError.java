@@ -64,8 +64,11 @@ public class InError {
     ErrSeverity getSeverity(){
         return maxErr==null?ErrSeverity.NONE:maxErr.severity;
     }
-    void showmax(){
-        if (maxErr!=null&&maxErr.severity.ordinal()>=ErrSeverity.WARNING.ordinal())
+    void showmax(ErrSeverity minseverity){
+        if (maxErr!=null&&maxErr.severity.ordinal()>=minseverity.ordinal())
             Toast.makeText(InApp.get().getBaseContext(), maxErr.text, Toast.LENGTH_LONG).show();
+    }
+    void showmax(){
+        showmax(ErrSeverity.WARNING);
     }
 }

@@ -45,11 +45,11 @@ public class EventList extends Activity {
         setContentView(R.layout.activity_event_list);
         final String EVFRAG = "EVFRAG";
         mFrag = (EventsFragment) getFragmentManager().findFragmentByTag(EVFRAG);
-        if (savedInstanceState == null||mFrag==null) {
+        if (savedInstanceState == null || mFrag == null) {
             mFrag = new EventsFragment(mIbot);
             mFrag.setRetainInstance(true);
             getFragmentManager().beginTransaction()
-                    .add(R.id.container, mFrag,EVFRAG)
+                    .add(R.id.container, mFrag, EVFRAG)
                     .commit();
         }
     }
@@ -203,6 +203,8 @@ public class EventList extends Activity {
                         else if (mIbot.isExpired(InternationsBot.Refreshkeys.MYEVENTS))
                             loadevents(true, false);
                     }
+                    if (mOperation == Operations.RSVPNO || mOperation == Operations.RSVPYES)
+                        InError.get().showmax(InError.ErrSeverity.INFO);
                 } else {
                     InError.get().showmax();
                     if (!mIbot.passIsSet() || InError.get().hasType(InError.ErrType.LOGIN)) {
@@ -229,6 +231,7 @@ public class EventList extends Activity {
 
             @Override
             protected Boolean doInBackground(Operations... ops) {
+                mOperation = ops[0];
                 InError.get().clear();
                 if (ops[0] == Operations.LOAD) {
                     mIbot.loadEvents();
@@ -247,14 +250,20 @@ public class EventList extends Activity {
                                 refresh(true);
                                 break;
                             case RSVPNO:
-                                mIbot.rsvp(mEvent, false);
-                                if (InError.isOk())
-                                    mIbot.readMyEvents(true);
-                                break;
                             case RSVPYES:
-                                mIbot.rsvp(mEvent, true);
-                                if ( InError.isOk())
+                                boolean newRSVP = ops[0] == Operations.RSVPYES;
+                                mIbot.rsvp(mEvent, newRSVP);
+                                if (InError.isOk()) {
                                     mIbot.readMyEvents(true);
+                                    InEvent subev = mIbot.mEvents.get(mEvent.mEventId);
+                                    if (subev == null || subev.imGoing() != newRSVP)
+                                        InError.get().add(InError.ErrSeverity.INFO,
+                                                InError.ErrType.UNKNOWN,
+                                                "Error " + (newRSVP ? "subscribing (list full?)" : "unsubscribing") + ", please try from website");
+                                    else InError.get().add(InError.ErrSeverity.INFO,
+                                            InError.ErrType.UNKNOWN,
+                                            "Event " + (newRSVP ? "" : "un") + "subscribed successfully");
+                                }
                                 break;
                         }
                     else
