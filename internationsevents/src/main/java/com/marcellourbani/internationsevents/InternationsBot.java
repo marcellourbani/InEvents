@@ -252,7 +252,9 @@ public class InternationsBot {
         }
         return mEvents;
     }
-
+    public void clearold() {
+        InEvent.clearold();
+    }
     private String extractTable(String source, String id) {
         Matcher m = Pattern.compile("(<table[^>]*" + id + ".*/table>)").matcher(source);
         if (m.find()) {

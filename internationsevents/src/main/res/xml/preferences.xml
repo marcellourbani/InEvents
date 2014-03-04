@@ -21,14 +21,24 @@
         android:defaultValue="60"/>
     <EditTextPreference
         android:key="pr_grev_timeout"
-        android:summary="Time after which events from my groups will be reloaded (hours)"
+        android:summary="Time after which events from my groups will be reloaded on refresh  (hours)"
         android:title="My group events expiration time"
         android:numeric="integer"
         android:defaultValue="24"/>
     <EditTextPreference
         android:key="pr_group_timeout"
-        android:summary="Time after which events from my groups will be reloaded (hours)"
-        android:title="My group subscriptions expiration time"
+        android:summary="Time after which events from my groups will be reloaded on refresh (hours)"
+        android:title="My group events expiration time"
         android:numeric="integer"
         android:defaultValue="24"/>
+    <CheckBoxPreference
+        android:key="pr_refresh_mobile"
+        android:title="Refresh on mobile network"
+        android:summary="If not set will only refresh over WiFi"/>
+    <EditTextPreference
+        android:key="pr_refresh_interval"
+        android:title="Background refresh frequency"
+        android:summary="In hours, 0 means never refresh in background"
+        android:numeric="integer"
+        android:defaultValue="6"/>
 </PreferenceScreen>

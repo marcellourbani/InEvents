@@ -28,6 +28,7 @@ import java.net.URL;
 import java.text.DateFormat;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.regex.Matcher;
@@ -43,7 +44,6 @@ public class InEvent {
     private SubscStatus mRsvp = SubscStatus.NOTGOING;
     boolean mMine, mSaved;
     GregorianCalendar mStart, mStop;
-
 
     private enum SubscStatus {
         INVITED, GOING, NOTGOING;
@@ -227,17 +227,30 @@ public class InEvent {
         }
         return mSaved;
     }
-
+    private static Long getMinTime(){
+        Calendar c = Calendar.getInstance();
+        if(c.get(Calendar.HOUR_OF_DAY) < 10)
+            c.add(Calendar.HOUR_OF_DAY,-10);//10 hours ago
+        else{
+            c.add(Calendar.DATE,-1);
+            c.set(Calendar.HOUR_OF_DAY,23);
+            c.set(Calendar.MINUTE,59);
+            c.set(Calendar.MINUTE,59);
+        }return (c).getTime().getTime();
+    }
     static ArrayMap<String, InEvent> loadEvents() {
         SQLiteDatabase db = InApp.get().getDB().getWrdb();
-        Long mintime = (new Date()).getTime() - 36000000;//10 hours ago
         ArrayMap<String, InEvent> events = new ArrayMap<String, InEvent>();
-        Cursor c = db.query(false, "events", new String[]{"*"}, "starttime >= ?", new String[]{mintime.toString()}, null, null, null, null);
+        Cursor c = db.query(false, "events", new String[]{"*"}, "starttime >= ?", new String[]{getMinTime().toString()}, null, null, null, null);
         while (c != null && c.moveToNext()) {
             InEvent event = new InEvent(c);
             events.put(event.mEventId, event);
         }
         return events;
+    }
+    public static void clearold() {
+        SQLiteDatabase db = InApp.get().getDB().getWrdb();
+        db.delete("events","starttime < ?",new String[]{getMinTime().toString()});
     }
 
     public void set_attendance(boolean going) {

@@ -16,9 +16,11 @@ package com.marcellourbani.internationsevents;
 
 import android.app.Activity;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.ListPreference;
 import android.preference.PreferenceFragment;
+import android.preference.PreferenceManager;
 
 public class InPreferences extends Activity {
     @Override
@@ -28,10 +30,20 @@ public class InPreferences extends Activity {
         getFragmentManager().beginTransaction().replace(android.R.id.content,
                 new PrefsFragment()).commit();
     }
+    private static class PSL implements SharedPreferences.OnSharedPreferenceChangeListener {
+        @Override
+        public void onSharedPreferenceChanged(SharedPreferences prefs, String s) {
+            if(s!=null&&s.equals("pr_refresh_interval"))
+                InService.schedule(true);
+        }
+    }
     public static class PrefsFragment extends PreferenceFragment {
         @Override
         public void onCreate(Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
+            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+            prefs.getAll();
+            prefs.registerOnSharedPreferenceChangeListener(new PSL());
             addPreferencesFromResource(R.xml.preferences);
             ListPreference calendarPref = (ListPreference) findPreference("pr_calendar");
             if(!InCalendar.addCalendarsPreferences(getActivity(),calendarPref))

@@ -12,25 +12,26 @@
     <uses-permission android:name="android.permission.READ_SYNC_SETTINGS" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <application
-        android:name="com.marcellourbani.internationsevents.InApp"
+        android:name=".InApp"
         android:allowBackup="true"
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name"
         android:theme="@style/AppTheme" >
         <activity
-            android:name="com.marcellourbani.internationsevents.EventList"
+            android:name=".EventList"
             android:label="@string/app_name" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        <activity android:name="com.marcellourbani.internationsevents.InPreferences" />
+        <activity android:name=".InPreferences" />
         <activity
-            android:name="com.marcellourbani.internationsevents.InWeb"
-            android:label="@string/title_activity_in_web" >
+            android:name=".InWeb"
+            android:label="@string/app_name" >
         </activity>
+        <service android:name=".InService"/>
+        <receiver android:name=".InService.Receiver"/>
     </application>
 
 </manifest>

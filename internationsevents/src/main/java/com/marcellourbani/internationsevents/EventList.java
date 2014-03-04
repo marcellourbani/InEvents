@@ -51,6 +51,7 @@ public class EventList extends Activity {
             getFragmentManager().beginTransaction()
                     .add(R.id.container, mFrag, EVFRAG)
                     .commit();
+            InService.schedule(false);
         }
     }
 
@@ -115,7 +116,6 @@ public class EventList extends Activity {
 
     private class LinkWorker extends AsyncTask<InEvent, Integer, Boolean> {
         InEvent mEvent;
-
         @Override
         protected void onPostExecute(Boolean o) {
             EventList.this.setProgressIndicator(false);
@@ -224,9 +224,15 @@ public class EventList extends Activity {
                     if (InError.isOk()) mIbot.readMyGroups();
                     if (InError.isOk()) mIbot.saveGroups();
                     if (InError.isOk()) mIbot.readGroupsEvents();
+                } else {
+                    if (InError.isOk() && mIbot.isExpired(InternationsBot.Refreshkeys.GROUPS)) {
+                        mIbot.readMyGroups();
+                        if (InError.isOk()) mIbot.saveGroups();
+                    }
+                    if (InError.isOk() && mIbot.isExpired(InternationsBot.Refreshkeys.EVENTS))
+                        mIbot.readGroupsEvents();
                 }
                 if (InError.isOk()) mIbot.saveEvents(all);
-
             }
 
             @Override
