@@ -35,7 +35,6 @@ import org.jsoup.select.Elements;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.charset.MalformedInputException;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -124,7 +123,7 @@ public class InternationsBot {
                     Matcher mat = Pattern.compile("common_base_form__token[^>]*value=\"([^\"]*)").matcher(evText);
                     if (mat.find()) token = mat.group(1);
                 }
-                String method="";
+                String method;
                 if (event.beenInvited()||!going) {
                     method = going ? "PATCH" : "DELETE";
                     parms.add(new BasicNameValuePair("_method", method));
@@ -138,7 +137,7 @@ public class InternationsBot {
                 //after the event was downloaded
                 //try subscribing without invitation
                 if((result.indexOf("error__sorry") > 0)&&going&&event.beenInvited()){
-                    event.getRsvpUrl(going,false);
+                    event.getRsvpUrl(true,false);
                     parms.clear();
                     parms.add(new BasicNameValuePair("common_base_form[_token]", token));
                     parms.add(new BasicNameValuePair("redirectRoute", "_activity_group_activity_get"));
@@ -285,7 +284,6 @@ public class InternationsBot {
             if(!InError.isOk())return;
             //reset attendance if required
             for (InEvent e : mEvents.values()) {
-                InEvent e2 = events.get(e.mEventId);
                 if (e.imGoing() && events.get(e.mEventId) == null) {
                     e.set_attendance(false);
                     events.put(e.mEventId, e);
@@ -297,6 +295,9 @@ public class InternationsBot {
             }
         } catch (IOException e) {
             InError.get().add(InError.ErrType.NETWORK,"Error downloading my groups.\n"+e.getMessage());
+            Log.d(INTAG, e.getMessage());
+        }catch (Exception e){
+            InError.get().add(InError.ErrType.UNKNOWN,"Error downloading my groups.\n"+e.getMessage());
             Log.d(INTAG, e.getMessage());
         }
     }
@@ -310,7 +311,6 @@ public class InternationsBot {
                 String activities = mClient.geturl_string(url);
                 Matcher m = Pattern.compile("(<ul[^>]*upcoming.*/ul>).*/.upcoming").matcher(activities);
                 if (m.find()) {
-                    String s = m.group(1);
                     Document doc = Jsoup.parse(m.group(1));
                     Elements elements = doc.select("li.activity");
                     for (Element e : elements) {

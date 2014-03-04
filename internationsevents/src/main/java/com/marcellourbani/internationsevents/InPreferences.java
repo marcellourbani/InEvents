@@ -42,7 +42,6 @@ public class InPreferences extends Activity {
         public void onCreate(Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
             SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
-            prefs.getAll();
             prefs.registerOnSharedPreferenceChangeListener(new PSL());
             addPreferencesFromResource(R.xml.preferences);
             ListPreference calendarPref = (ListPreference) findPreference("pr_calendar");
