@@ -38,9 +38,9 @@ public class EventList extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        //TODO? no refresh when network not connected
-        //TODO service
         //TODO? intent filter
+        //TODO calendar cleanup
+        //TODO new event notification
         mIbot = new InternationsBot(PreferenceManager.getDefaultSharedPreferences(this));
         setContentView(R.layout.activity_event_list);
         final String EVFRAG = "EVFRAG";
@@ -116,6 +116,7 @@ public class EventList extends Activity {
 
     private class LinkWorker extends AsyncTask<InEvent, Integer, Boolean> {
         InEvent mEvent;
+
         @Override
         protected void onPostExecute(Boolean o) {
             EventList.this.setProgressIndicator(false);
@@ -140,7 +141,7 @@ public class EventList extends Activity {
     public static class EventsFragment extends ListFragment {
         protected static InternationsBot mIbot;
         private NetWorker mNw;
-        private EventAdapter eventAdapter;
+        private EventAdapter mEventAdapter = null;
 
         public EventsFragment(InternationsBot bot) {
             mIbot = bot;
@@ -190,15 +191,14 @@ public class EventList extends Activity {
                 EventList el = ((EventList) getActivity());
                 if (el != null) el.setProgressIndicator(false);
                 if (o) {
-                    for (InEvent event : mIbot.getEvents()) {
-                        if (event.imGoing())
-                            InCalendar.modifyEvent(getActivity(), event);
-                    }
-                    eventAdapter = new EventAdapter(getActivity(), R.layout.fragment_event_list, mIbot.getEvents());
-                    EventsFragment.this.setListAdapter(eventAdapter);
-                    eventAdapter.notifyDataSetChanged();
+                    InCalendar.syncEvents(mIbot.mEvents);
+                    if (mEventAdapter == null) {
+                        mEventAdapter = EventAdapter.create(getActivity(), R.layout.fragment_event_list, mIbot.mEvents);
+                        EventsFragment.this.setListAdapter(mEventAdapter);
+                    } else mEventAdapter.updateEvents(mIbot.mEvents);
+                    EventsFragment.this.getListView().invalidateViews();
                     if (fromDB) {
-                        if (mIbot.mEvents.isEmpty() || mIbot.isExpired(InternationsBot.Refreshkeys.EVENTS))
+                        if (mIbot.mEvents.isEmpty() || mIbot.isExpired(InternationsBot.Refreshkeys.EVENTS) && InApp.get().isConnected(true))
                             loadevents(true, true);
                         else if (mIbot.isExpired(InternationsBot.Refreshkeys.MYEVENTS))
                             loadevents(true, false);
@@ -224,15 +224,17 @@ public class EventList extends Activity {
                     if (InError.isOk()) mIbot.readMyGroups();
                     if (InError.isOk()) mIbot.saveGroups();
                     if (InError.isOk()) mIbot.readGroupsEvents();
+                    if (InError.isOk()) mIbot.saveEvents(all);
                 } else {
                     if (InError.isOk() && mIbot.isExpired(InternationsBot.Refreshkeys.GROUPS)) {
                         mIbot.readMyGroups();
                         if (InError.isOk()) mIbot.saveGroups();
                     }
-                    if (InError.isOk() && mIbot.isExpired(InternationsBot.Refreshkeys.EVENTS))
+                    if (InError.isOk() && mIbot.isExpired(InternationsBot.Refreshkeys.EVENTS)) {
                         mIbot.readGroupsEvents();
+                        if (InError.isOk()) mIbot.saveEvents(all);
+                    }
                 }
-                if (InError.isOk()) mIbot.saveEvents(all);
             }
 
             @Override

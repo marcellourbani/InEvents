@@ -20,11 +20,8 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.os.AsyncTask;
 import android.preference.PreferenceManager;
-import android.util.Log;
 
 import java.util.Calendar;
 
@@ -37,21 +34,16 @@ public class InService extends IntentService {
 
     @Override
     protected void onHandleIntent(Intent intent) {
-        prefs = PreferenceManager.getDefaultSharedPreferences(InApp.get());
-        Boolean usemobile = prefs.getBoolean("pr_refresh_mobile", false);
-        ConnectivityManager connectivityManager
-                = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
-        NetworkInfo activeNI = connectivityManager.getActiveNetworkInfo();
-        if (activeNI != null && activeNI.isConnected() && (usemobile || activeNI.getType() == ConnectivityManager.TYPE_WIFI))
+        if (InApp.get().isConnected())
             new refreshTask().doInBackground("");
-            else retry();
+        else retry();
     }
 
     private void retry() {
         AlarmManager alarm = (AlarmManager) InApp.get().getSystemService(Context.ALARM_SERVICE);
         Intent intent = new Intent(InApp.get(), InReceiver.class);
-        PendingIntent pintent =  PendingIntent.getService(InApp.get(), 0, intent, 0);
-        alarm.set(AlarmManager.RTC_WAKEUP,Calendar.getInstance().getTimeInMillis() +600000,pintent);//10 minutes
+        PendingIntent pintent = PendingIntent.getService(InApp.get(), 0, intent, 0);
+        alarm.set(AlarmManager.RTC_WAKEUP, Calendar.getInstance().getTimeInMillis() + 600000, pintent);//10 minutes
     }
 
     static void schedule(boolean reschedule) {
@@ -61,7 +53,7 @@ public class InService extends IntentService {
         Intent intent = new Intent(InApp.get(), InReceiver.class);
         PendingIntent pintent = PendingIntent.getBroadcast(InApp.get(), 0, intent, PendingIntent.FLAG_NO_CREATE);
         if (pintent == null) {
-            pintent = PendingIntent.getBroadcast(InApp.get(), 0, intent,0);//PendingIntent.getService(InApp.get(), 0, intent, 0);
+            pintent = PendingIntent.getBroadcast(InApp.get(), 0, intent, 0);//PendingIntent.getService(InApp.get(), 0, intent, 0);
         } else {
             if (reschedule)
                 alarm.cancel(pintent);
@@ -82,8 +74,13 @@ public class InService extends IntentService {
             bot.clearold();
             bot.loadEvents();
             bot.loadMyGroups();
+            if (!bot.sign()) {
+                if (bot.passIsSet()) retry();
+                return false;
+            }
             InError.get().clear();
             bot.readMyEvents(true);
+            if (InError.isOk())InCalendar.syncEvents(bot.mEvents);
             if (InError.isOk() && bot.isExpired(InternationsBot.Refreshkeys.GROUPS)) {
                 bot.readMyGroups();
                 if (InError.isOk()) bot.saveGroups();

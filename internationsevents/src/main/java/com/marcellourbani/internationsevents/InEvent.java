@@ -45,6 +45,15 @@ public class InEvent {
     boolean mMine, mSaved;
     GregorianCalendar mStart, mStop;
 
+    public static String idFromurl(String url) {
+        if(url==null)return null;
+        Matcher m = mActPattern.matcher(url);
+        if(m.find()) return m.group(2);
+        m=mEventPattern.matcher(url);
+        if(m.find()) return m.group(1);
+        return null;
+    }
+
     private enum SubscStatus {
         INVITED, GOING, NOTGOING;
 

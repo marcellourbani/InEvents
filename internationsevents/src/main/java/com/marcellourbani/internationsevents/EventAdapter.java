@@ -15,6 +15,7 @@
 package com.marcellourbani.internationsevents;
 
 import android.content.Context;
+import android.support.v4.util.ArrayMap;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -27,6 +28,9 @@ import com.squareup.picasso.Picasso;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 public class EventAdapter extends ArrayAdapter<InEvent> {
@@ -40,6 +44,25 @@ public class EventAdapter extends ArrayAdapter<InEvent> {
         this.eventList = (EventList) context;
         events = objects;
     }
+
+    public static EventAdapter create(Context context, int resource, ArrayMap<String, InEvent> evmap) {
+        ArrayList<InEvent> eventlist = new ArrayList<InEvent>();
+        return new EventAdapter(context,resource,eventlist).updateEvents(evmap);
+    }
+
+    public EventAdapter updateEvents(ArrayMap<String, InEvent> eventmap) {
+        events.clear();
+        events.addAll(eventmap.values());
+        Collections.sort(events, new Comparator<InEvent>() {
+            @Override
+            public int compare(InEvent e1, InEvent e2) {
+                return e1.mStart.compareTo(e2.mStart);
+            }
+        });
+        this.notifyDataSetChanged();
+        return this;
+    }
+
     private class Controls{
         Button rsvp;
         ImageView icon,locicon;
@@ -71,9 +94,7 @@ public class EventAdapter extends ArrayAdapter<InEvent> {
                 Picasso.with(eventList).load(event.mIconUrl).into(icon);
                 title.setText(event.mTitle);
                 location.setText(event.mLocation);
-                if (event.imGoing()) {
-                    rsvp.setText("Going");
-                }
+                rsvp.setText(event.imGoing()?"Going":"RSVP");
                 rsvp.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
@@ -109,7 +130,9 @@ public class EventAdapter extends ArrayAdapter<InEvent> {
         if (view == null) {
             LayoutInflater inflater = (LayoutInflater) getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
             view = inflater.inflate(R.layout.event_item, null);
-            view.setTag(new Controls(view,event));
+            if (view != null) {
+                view.setTag(new Controls(view,event));
+            }
         }else
             ((Controls) view.getTag()).setEvent(event);
         return view;
