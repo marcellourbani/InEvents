@@ -16,7 +16,10 @@ package com.marcellourbani.internationsevents;
 
 import android.app.Activity;
 import android.app.ListFragment;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -32,6 +35,7 @@ public class EventList extends Activity {
     private static EventsFragment mFrag;
     protected MenuItem refresh;
     private static final int SETPASSWORD = 2001;
+    private DataUpdateReceiver dataUpdateReceiver;
 
     protected enum Operations {LOAD, RSVPYES, RSVPNO, REFRESH, REFRESHALL}
 
@@ -53,6 +57,20 @@ public class EventList extends Activity {
                     .commit();
             InService.schedule(false);
         }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (dataUpdateReceiver == null) dataUpdateReceiver = new DataUpdateReceiver();
+        IntentFilter intentFilter = new IntentFilter(InService.RELOAD_EVENTS);
+        registerReceiver(dataUpdateReceiver, intentFilter);
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (dataUpdateReceiver != null) unregisterReceiver(dataUpdateReceiver);
     }
 
     @Override
@@ -278,6 +296,14 @@ public class EventList extends Activity {
                         return false;
                 }
                 return true;
+            }
+        }
+    }
+    private class DataUpdateReceiver extends BroadcastReceiver {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            if (intent.getAction().equals(InService.RELOAD_EVENTS)) {
+                mFrag.loadevents(false,false);
             }
         }
     }

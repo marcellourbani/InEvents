@@ -22,10 +22,12 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.preference.PreferenceManager;
+import android.util.Log;
 
 import java.util.Calendar;
 
 public class InService extends IntentService {
+    public static final String RELOAD_EVENTS = "INEVENTS_RELOAD";
     SharedPreferences prefs;
 
     public InService() {
@@ -35,7 +37,7 @@ public class InService extends IntentService {
     @Override
     protected void onHandleIntent(Intent intent) {
         if (InApp.get().isConnected())
-            new refreshTask().doInBackground("");
+            new refreshTask().execute();
         else retry();
     }
 
@@ -70,6 +72,7 @@ public class InService extends IntentService {
     private class refreshTask extends AsyncTask<String, Integer, Boolean> {
         @Override
         protected Boolean doInBackground(String... strings) {
+            if(prefs==null)prefs= PreferenceManager.getDefaultSharedPreferences(InApp.get());
             InternationsBot bot = new InternationsBot(prefs);
             bot.clearold();
             bot.loadEvents();
@@ -88,6 +91,12 @@ public class InService extends IntentService {
             if (InError.isOk()) bot.readGroupsEvents();
             if (InError.isOk()) bot.saveEvents(true);
             return InError.isOk();
+        }
+
+        @Override
+        protected void onPostExecute(Boolean aBoolean) {
+            super.onPostExecute(aBoolean);
+            sendBroadcast(new Intent(RELOAD_EVENTS));
         }
     }
 }

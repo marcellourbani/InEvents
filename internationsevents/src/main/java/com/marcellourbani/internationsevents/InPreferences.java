@@ -38,15 +38,26 @@ public class InPreferences extends Activity {
         }
     }
     public static class PrefsFragment extends PreferenceFragment {
+        private PSL psl;
+        SharedPreferences prefs;
         @Override
         public void onCreate(Bundle savedInstanceState) {
             super.onCreate(savedInstanceState);
-            SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
-            prefs.registerOnSharedPreferenceChangeListener(new PSL());
+            if(getActivity()!=null){
+                prefs = PreferenceManager.getDefaultSharedPreferences(getActivity());
+                if(psl==null)psl = new PSL();
+                prefs.registerOnSharedPreferenceChangeListener(psl);
+            }
             addPreferencesFromResource(R.xml.preferences);
             ListPreference calendarPref = (ListPreference) findPreference("pr_calendar");
-            if(!InCalendar.addCalendarsPreferences(getActivity(),calendarPref))
+            if(calendarPref!=null&&!InCalendar.addCalendarsPreferences(getActivity(),calendarPref))
                 calendarPref.setEnabled(false);
+        }
+
+        @Override
+        public void onDestroy() {
+            super.onDestroy();
+            if(prefs!=null)prefs.unregisterOnSharedPreferenceChangeListener(psl);
         }
     }
     @Override

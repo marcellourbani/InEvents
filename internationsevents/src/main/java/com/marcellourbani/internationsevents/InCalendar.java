@@ -20,6 +20,7 @@ import android.content.Context;
 import android.content.res.Resources;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Build;
 import android.preference.ListPreference;
 import android.preference.PreferenceManager;
 import android.provider.CalendarContract;
@@ -34,10 +35,12 @@ import java.util.TimeZone;
 
 public class InCalendar {
     private static final Uri CAL_URI = CalendarContract.Calendars.CONTENT_URI;
-    private static final String[] CALCOLUMNS = new String[]{Calendars._ID, Calendars.CALENDAR_DISPLAY_NAME};
     private static final String CALENDARS_WHERE = Calendars.CALENDAR_ACCESS_LEVEL + ">=" + Calendars.CAL_ACCESS_CONTRIBUTOR;
-    private static String EVENTID = Events.CUSTOM_APP_URI;// CalendarContract.ExtendedProperties.EVENT_ID;
+    private static String CUSTOMURL = Events.CUSTOM_APP_URI;// CalendarContract.ExtendedProperties.EVENT_ID;
     private String mId, mName;
+    private static boolean hasurl(){
+        return Build.VERSION.SDK_INT>=Build.VERSION_CODES.JELLY_BEAN;
+    }
 
     public String getId() {
         return mId;
@@ -71,7 +74,8 @@ public class InCalendar {
         values.put(Events.EVENT_LOCATION, event.mLocation);
         values.put(CalendarContract.Events.DESCRIPTION, event.mGroup + " " + event.mTitle + "\n" + event.mEventUrl);
         values.put(CalendarContract.Events.CALENDAR_ID, getDefaultCalendar(context));
-        values.put(EVENTID, event.mEventUrl);
+        if(hasurl())
+          values.put(CUSTOMURL, event.mEventUrl);
         return values;
     }
 
@@ -80,24 +84,27 @@ public class InCalendar {
         Uri uri = cr.insert(Events.CONTENT_URI, getEventValues(context, event));
         String eventID = uri.getLastPathSegment();
     }
-
+    private static String[] calendarColumns(){
+        if(hasurl())return new String[]{Events._ID, Events.DESCRIPTION, CUSTOMURL};
+        return new String[]{Events._ID, Events.DESCRIPTION};
+    }
+    private static String getUrlcondition(boolean strict){
+        if(hasurl())return CUSTOMURL + (strict?" = ?":" like ?");
+        return Events.DESCRIPTION +" like ?";
+    }
     public static void modifyEvent(Context context, InEvent event) {
         String cal = getDefaultCalendar(context);
         if (cal == null || cal.length() == 0)
             return;
         ContentResolver contentResolver = context.getContentResolver();
-        Cursor cursor = contentResolver.query(Events.CONTENT_URI, new String[]{Events._ID, Events.DESCRIPTION, EVENTID},
-                Events.CALENDAR_ID + " = ? AND " + EVENTID + " = ?",
-                new String[]{cal, event.mEventUrl}, null);
+        Cursor cursor = contentResolver.query(Events.CONTENT_URI, calendarColumns(),
+                Events.CALENDAR_ID + " = ? AND " + getUrlcondition(true),
+                new String[]{cal, hasurl()? event.mEventUrl:"%"+event.mEventUrl+"%"}, null);
         boolean updated = false;
+        if(cursor.getCount()>1) return;
         while (cursor.moveToNext()) {
-            final int APPURL = cursor.getColumnIndex(EVENTID);
-            if (cursor.getString(APPURL) != null && cursor.getString(APPURL).equals(event.mEventUrl)) {
-                //TODO:only update if needed...
-                updated = contentResolver.update(Events.CONTENT_URI, getEventValues(context, event),
+            updated = contentResolver.update(Events.CONTENT_URI, getEventValues(context, event),
                         "(" + Events._ID + " = ?)", new String[]{cursor.getString(0)}) > 0;
-                break;
-            }
         }
         if (!updated) addEvent(context, event);
     }
@@ -110,7 +117,7 @@ public class InCalendar {
         ArrayList<InCalendar> calendars = null;
         ContentResolver cr = context.getContentResolver();
         Resources r = context.getResources();
-        Cursor c = cr.query(CAL_URI, CALCOLUMNS,
+        Cursor c = cr.query(CAL_URI, new String[]{Calendars._ID, Calendars.CALENDAR_DISPLAY_NAME},
                 CALENDARS_WHERE, null, Calendars.DEFAULT_SORT_ORDER);
         try {
             if (c != null && c.getCount() > 0) {
@@ -145,29 +152,41 @@ public class InCalendar {
         calendarPref.setValueIndex(idx);
         return true;
     }
-
+    private static class EvCal{
+        String mId, mEventId;
+        public EvCal(String id, String eventId) {
+            mId = id;
+            mEventId=eventId;
+        }
+    }
     public static ArrayList<String> syncEvents(ArrayMap<String, InEvent> events) {
         ArrayList<String> removed = new ArrayList<String>();
-        ArrayList<String> toremove = new ArrayList<String>();
+        ArrayList<EvCal> toremove = new ArrayList<EvCal>();
         if (events == null) return removed;
         ContentResolver contentResolver = InApp.get().getContentResolver();
-        Cursor cursor = contentResolver.query(Events.CONTENT_URI, new String[]{Events._ID, Events.DESCRIPTION, EVENTID},
-                EVENTID + " like ?",
-                new String[]{InternationsBot.BASEURL + "%"}, null);
+        Cursor cursor = contentResolver.query(Events.CONTENT_URI, calendarColumns(),
+                getUrlcondition(false),
+                new String[]{hasurl()? InternationsBot.BASEURL+"%":"%"+InternationsBot.BASEURL+"%"}, null);
         while (cursor.moveToNext()) {
-            final int APPURL = cursor.getColumnIndex(EVENTID);
-            String url = cursor.getString(APPURL);
-            String eventId = InEvent.idFromurl(url);
+            String eventId;
+            if(hasurl()){
+                final int APPURL = cursor.getColumnIndex(CUSTOMURL);
+                String url = cursor.getString(APPURL);
+                eventId = InEvent.idFromurl(url);
+            }else{
+                final int DESCCOL = cursor.getColumnIndex(Events.DESCRIPTION);
+                String url = cursor.getString(DESCCOL);;
+                eventId = InEvent.idFromurl(url);
+            }
             if (eventId != null) {
                 InEvent old = events.get(eventId);
                 if (old == null || !old.imGoing())
-                    toremove.add(url);//event needs to be deleted
+                    toremove.add(new EvCal(cursor.getString(cursor.getColumnIndex(Events._ID)),eventId));//event needs to be deleted
             }
         }
-        for (String url : toremove) {
-            if (contentResolver.delete(Events.CONTENT_URI, EVENTID + " = ?", new String[]{url}) > 0) {
-                String eventId = InEvent.idFromurl(url);
-                if (eventId != null) removed.add(eventId);
+        for (EvCal evCal : toremove) {
+            if (contentResolver.delete(Events.CONTENT_URI, Events._ID + " = ?", new String[]{evCal.mId}) > 0) {
+                removed.add(evCal.mEventId);
             }
         }
         for (InEvent event : events.values()) {
