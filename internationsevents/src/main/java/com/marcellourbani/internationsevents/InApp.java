@@ -10,13 +10,16 @@ import android.preference.PreferenceManager;
 
 public class InApp extends Application {
     private static InApp _inst;
+    protected static InternationsBot mIbot;
     private InDatabase db;
     private String inToken;
 
     public static InApp get() {
         return _inst;
     }
-
+    protected static InternationsBot getbot(){
+        return mIbot;
+    }
     public InDatabase getDB() {
         return db == null ? db = new InDatabase(this) : db;
     }
@@ -34,6 +37,7 @@ public class InApp extends Application {
         super.onCreate();
         _inst = this;
         inToken = null;
+        mIbot=new InternationsBot(PreferenceManager.getDefaultSharedPreferences(this));
     }
 
     public boolean isConnected(boolean any) {

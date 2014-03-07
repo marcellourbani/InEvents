@@ -31,7 +31,6 @@ import android.view.View;
 import android.view.ViewGroup;
 
 public class EventList extends Activity {
-    protected static InternationsBot mIbot;
     private static EventsFragment mFrag;
     protected MenuItem refresh;
     private static final int SETPASSWORD = 2001;
@@ -42,15 +41,12 @@ public class EventList extends Activity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        //TODO? intent filter
-        //TODO calendar cleanup
         //TODO new event notification
-        mIbot = new InternationsBot(PreferenceManager.getDefaultSharedPreferences(this));
         setContentView(R.layout.activity_event_list);
         final String EVFRAG = "EVFRAG";
         mFrag = (EventsFragment) getFragmentManager().findFragmentByTag(EVFRAG);
         if (savedInstanceState == null || mFrag == null) {
-            mFrag = new EventsFragment(mIbot);
+            mFrag = new EventsFragment(InApp.getbot());
             mFrag.setRetainInstance(true);
             getFragmentManager().beginTransaction()
                     .add(R.id.container, mFrag, EVFRAG)
@@ -75,7 +71,7 @@ public class EventList extends Activity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        if (requestCode == SETPASSWORD && mIbot.passIsSet() && mFrag != null)
+        if (requestCode == SETPASSWORD && InApp.getbot().passIsSet() && mFrag != null)
             mFrag.loadevents(true, true);
     }
 
@@ -141,7 +137,7 @@ public class EventList extends Activity {
             if (o) {
                 Intent web = new Intent(EventList.this, InWeb.class);
                 web.putExtra(InWeb.EVENT_URL, mEvent.mEventUrl);
-                web.putExtra(InWeb.CURRENT_COOKIES, mIbot.getCookies());
+                web.putExtra(InWeb.CURRENT_COOKIES, InApp.getbot().getCookies());
                 startActivity(web);
             } else
                 InError.get().showmax();
@@ -152,7 +148,7 @@ public class EventList extends Activity {
         protected Boolean doInBackground(InEvent... inEvents) {
             InError.get().clear();
             mEvent = inEvents[0];
-            return mIbot.sign();
+            return InApp.getbot().sign();
         }
     }
 
@@ -171,7 +167,7 @@ public class EventList extends Activity {
         }
 
         @Override
-        public View onCreateView(LayoutInflater inflater, ViewGroup container,
+        public View onCreateView( LayoutInflater inflater, ViewGroup container,
                                  Bundle savedInstanceState) {
             View rootView;
             rootView = inflater.inflate(R.layout.fragment_event_list, container, false);
@@ -192,7 +188,7 @@ public class EventList extends Activity {
 
         public void rsvp(InEvent event, boolean going) {
             EventList el = (EventList) getActivity();
-            el.setProgressIndicator(true);
+            if(el!=null)el.setProgressIndicator(true);
             mNw = new NetWorker();
             mNw.mEvent = event;
             mNw.execute(going ? Operations.RSVPYES : Operations.RSVPNO);
@@ -250,7 +246,7 @@ public class EventList extends Activity {
                     }
                     if (InError.isOk() && mIbot.isExpired(InternationsBot.Refreshkeys.EVENTS)) {
                         mIbot.readGroupsEvents();
-                        if (InError.isOk()) mIbot.saveEvents(all);
+                        if (InError.isOk()) mIbot.saveEvents(true);
                     }
                 }
             }

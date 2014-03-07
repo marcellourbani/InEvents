@@ -17,8 +17,12 @@ package com.marcellourbani.internationsevents;
 
 import android.app.Activity;
 import android.content.Context;
+import android.content.Intent;
 import android.graphics.Point;
+import android.net.Uri;
+import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.view.Display;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -30,18 +34,35 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 
+import java.util.Objects;
+
 public class InWeb extends Activity {
 
     public static final String EVENT_URL = "EVENTURL";
     public static final String CURRENT_COOKIES = "CUR_COOKIES";
     private WebView web = null;
-
+    private MenuItem loading=null;
+    protected void setLoading(boolean isloading){
+        if(loading!=null){
+            if(isloading)
+              loading.setActionView(R.layout.actionbar_indeterminate_progress);
+            else
+              loading.setActionView(null);
+        }
+    };
     /* Class that prevents opening the Browser */
     private class InsideWebViewClient extends WebViewClient {
         @Override
         public boolean shouldOverrideUrlLoading(WebView view, String url) {
+            setLoading(true);
             view.loadUrl(url);
             return true;
+        }
+
+        @Override
+        public void onPageFinished(WebView view, String url) {
+            super.onPageFinished(view, url);
+            setLoading(false);
         }
     }
 
@@ -50,8 +71,10 @@ public class InWeb extends Activity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_in_web);
         web = (WebView) this.findViewById(R.id.inwebview);
-        String eventurl = getIntent().getStringExtra(EVENT_URL);
-        Bundle cookies = getIntent().getBundleExtra(CURRENT_COOKIES);
+        Intent i=getIntent();
+        String eventurl = i.getStringExtra(EVENT_URL);
+        Bundle cookies = i.getBundleExtra(CURRENT_COOKIES);
+        Uri uri = i.getData();
         WebSettings settings = web.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setBuiltInZoomControls(true);
@@ -59,6 +82,16 @@ public class InWeb extends Activity {
         settings.setLoadWithOverviewMode(true);
         settings.setSupportZoom(true);
         web.setInitialScale(getScale());
+        setcookies(cookies);
+        web.setWebViewClient(new InsideWebViewClient());
+        web.setWebChromeClient(new WebChromeClient());
+        if(savedInstanceState == null){
+            if (eventurl != null)
+                web.loadUrl(eventurl);
+            else if (uri!=null) new SignWorker().execute(uri.toString());
+        }
+    }
+    void setcookies(Bundle cookies){
         if (cookies != null) {
             CookieSyncManager.createInstance(this);
             CookieManager cookieManager = CookieManager.getInstance();
@@ -67,13 +100,7 @@ public class InWeb extends Activity {
             }
             CookieSyncManager.getInstance().sync();
         }
-        web.setWebViewClient(new InsideWebViewClient());
-        web.setWebChromeClient(new WebChromeClient());
-        if (eventurl != null && savedInstanceState == null) {
-            web.loadUrl(eventurl);
-        }
     }
-
     private int getScale() {
         Display display = ((WindowManager) getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
         Point p = new Point();
@@ -99,20 +126,24 @@ public class InWeb extends Activity {
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.in_web, menu);
+        loading = menu.findItem(R.id.action_loading);
         return true;
     }
-
-    @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
-        int id = item.getItemId();
-        if (id == R.id.action_back) {
-            this.finish();
-            return true;
+    private class SignWorker extends AsyncTask<String, Integer, Boolean> {
+        String url;
+        @Override
+        protected void onPostExecute(Boolean o) {
+            if(o){
+              setcookies(InApp.getbot().getCookies());
+              web.loadUrl(url);
+            }
         }
-        return super.onOptionsItemSelected(item);
-    }
 
+        @Override
+        protected Boolean doInBackground(String...strings) {
+            url=strings[0];
+            setLoading(true);
+            return InApp.getbot().sign();
+        }
+    }
 }
