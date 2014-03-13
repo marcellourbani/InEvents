@@ -245,7 +245,13 @@ public class InternationsBot {
 
     public ArrayMap<String, InEvent> loadEvents() {
         try {
-            mEvents = InEvent.loadEvents();
+            ArrayMap<String, InEvent> events = InEvent.loadEvents();
+            if(mEvents==null)mEvents=events;
+            else for(InEvent event:events.values()){
+                InEvent old = mEvents.get(event.mEventId);
+                if(old!=null&&old.mNew)event.mNew =true;
+                mEvents.put(event.mEventId,event);
+            }
         } catch (Exception e) {
             InError.get().add(InError.ErrType.DATABASE, "Error loading events from database\n" + e.getMessage());
         }
@@ -272,6 +278,7 @@ public class InternationsBot {
                 try{
                 InEvent event = new InEvent(evel);
                 events.put(event.mEventId, event);
+                if(mEvents.get(event.mEventId)==null)event.mNew = true;
                 mEvents.put(event.mEventId, event);
                 } catch (MalformedURLException e) {
                     InError.get().add(InError.ErrType.PARSE, "Error parsing my events URL" + e.getMessage());
@@ -316,6 +323,7 @@ public class InternationsBot {
                     for (Element e : elements) {
                         InEvent event = new InEvent(e, group);
                         InEvent old = mEvents.get(event.mEventId);
+                        if(old==null)event.mNew = true;
                         //the 'my events' view gives more details, do not overwrite if comes from there
                         //perhaps we should copy changed data, like event date and description
                         if (old == null || !old.mMine)

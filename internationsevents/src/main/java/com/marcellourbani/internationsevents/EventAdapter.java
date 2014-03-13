@@ -65,7 +65,7 @@ public class EventAdapter extends ArrayAdapter<InEvent> {
 
     private class Controls{
         Button rsvp;
-        ImageView icon,locicon;
+        ImageView icon,locicon,newicon;
         InEvent event;
         TextView title,location,startdt,starttm,group;
         Controls(View view,InEvent event){
@@ -77,6 +77,7 @@ public class EventAdapter extends ArrayAdapter<InEvent> {
             starttm = (TextView) view.findViewById(R.id.eitime);
             group = (TextView) view.findViewById(R.id.eigroup);
             icon = (ImageView) view.findViewById(R.id.eiicon);
+            newicon = (ImageView) view.findViewById(R.id.einew);
             setEvent(event);
         }
         void setEvent(InEvent ev){
@@ -115,6 +116,7 @@ public class EventAdapter extends ArrayAdapter<InEvent> {
                         eventList.showmap(event);
                     }
                 };
+                newicon.setVisibility(event.mNew?View.VISIBLE:View.INVISIBLE);
                 if (event.mLocation != null && event.mLocation.length() > 0) {
                     locicon.setOnClickListener(startmap);
                     location.setOnClickListener(startmap);

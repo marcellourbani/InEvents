@@ -31,6 +31,7 @@ import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
+import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -44,6 +45,7 @@ public class InEvent {
     private SubscStatus mRsvp = SubscStatus.NOTGOING;
     boolean mMine, mSaved;
     GregorianCalendar mStart, mStop;
+    public boolean mNew;
 
     public static String idFromurl(String url) {
         if(url==null)return null;
@@ -195,14 +197,16 @@ public class InEvent {
         String startt = tmp.get(0).text();
         String endt = tmp.size() > 1 ? tmp.get(1).text() : null;
         if (endt != null && endd == null) endd = startd;
-        DateFormat df = new SimpleDateFormat("MMM dd,yyyy kk:mm");
+        DateFormat df = new SimpleDateFormat("MMM dd,yyyy kk:mm", Locale.US);
+        //DateFormat df = new SimpleDateFormat("MMM dd,yyyy kk:mm");
+        DateFormat dfdo = new SimpleDateFormat("MMM dd,yyyy", Locale.US);
         mStart = new GregorianCalendar();
         mStart.getTime().getTime();
-        mStart.setTime(df.parse(startd + " " + startt));
+        mStart.setTime(startt.equals("")?dfdo.parse(startd): df.parse(startd + " " + startt));
         mMine = true;
         if (endd != null) {
             mStop = new GregorianCalendar();
-            mStop.setTime(df.parse(endd + " " + endt));
+            mStop.setTime(endt.equals("")?dfdo.parse(endd): df.parse(endd + " " + endt));
         }
     }
 

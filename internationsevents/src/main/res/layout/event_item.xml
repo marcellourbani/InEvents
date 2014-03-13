@@ -19,7 +19,15 @@
         android:layout_below="@+id/eititle"
         android:layout_marginTop="10dp"
         android:layout_alignParentLeft="true" />
-
+    <ImageView
+        android:layout_width="30dip"
+        android:layout_height="30dip"
+        android:id="@+id/einew"
+        android:layout_below="@+id/eititle"
+        android:layout_marginTop="10dp"
+        android:layout_alignParentLeft="true"
+        android:visibility="invisible"
+        android:src="@drawable/newribbon" />
     <ImageView
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
