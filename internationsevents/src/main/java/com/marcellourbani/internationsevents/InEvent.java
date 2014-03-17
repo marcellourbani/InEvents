@@ -36,24 +36,67 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class InEvent {
-    private static final Pattern mActPattern = Pattern.compile("activity-group/([0-9]+)/activity/([0-9]+)");
-    private static final Pattern mEventPattern = Pattern.compile("/events/.*[^0-9]([0-9]+)$");
+    private static final Pattern MACTPATTERN = Pattern.compile("activity-group/([0-9]+)/activity/([0-9]+)");
+    private static final Pattern MEVENTPATTERN = Pattern.compile("/events/.*[^0-9]([0-9]+)$");
+    private static final DateFormat MYEVENTDF = new SimpleDateFormat("MMM dd,yyyy kk:mm", Locale.US);
+    private static final DateFormat MYEVENTDF_NOTIME = new SimpleDateFormat("MMM dd,yyyy", Locale.US);
+    private static final DateFormat GROPUEVENTDF = new SimpleDateFormat("dd MMMM yyyy", Locale.US);
     String mGroupId = null;
     String mEventId;
     String mIconUrl, mTitle, mLocation, mEventUrl, mGroup;
 
     private SubscStatus mRsvp = SubscStatus.NOTGOING;
-    boolean mMine, mSaved;
+    boolean mMine, mSaved,mAllDay;
     GregorianCalendar mStart, mStop;
     public boolean mNew;
+    long mTimelimit=0L;
 
     public static String idFromurl(String url) {
         if(url==null)return null;
-        Matcher m = mActPattern.matcher(url);
+        Matcher m = MACTPATTERN.matcher(url);
         if(m.find()) return m.group(2);
-        m=mEventPattern.matcher(url);
+        m= MEVENTPATTERN.matcher(url);
         if(m.find()) return m.group(1);
         return null;
+    }
+    public boolean equals(InEvent event){
+        return mRsvp   == event.mRsvp  &&
+                mMine   == event.mMine  &&
+                mAllDay == event.mAllDay &&
+                (mGroupId ==null?(event.mGroupId ==null):mGroupId .equals(event.mGroupId ))&&
+                (mEventId ==null?(event.mEventId ==null):mEventId .equals(event.mEventId ))&&
+                (mIconUrl ==null?(event.mIconUrl ==null):mIconUrl .equals(event.mIconUrl ))&&
+                (mTitle   ==null?(event.mTitle   ==null):mTitle   .equals(event.mTitle   ))&&
+                (mLocation==null?(event.mLocation==null):mLocation.equals(event.mLocation))&&
+                (mEventUrl==null?(event.mEventUrl==null):mEventUrl.equals(event.mEventUrl))&&
+                (mGroup   ==null?(event.mGroup   ==null):mGroup   .equals(event.mGroup   ))&&
+                (mStart   ==null?(event.mStart   ==null):mStart   .equals(event.mStart   ))&&
+                (mStop    ==null?(event.mStop    ==null):mStop    .equals(event.mStop    ));
+        //mNew and mTimelimit are ignored
+    }
+    public boolean merge(InEvent event) {
+        if(mEventId==null||mEventId.equals("")){
+            mEventId = event.mEventId;
+            mAllDay=event.mAllDay;
+            mNew=event.mNew;
+            mTimelimit=event.mTimelimit;
+        }else if(!mEventId.equals(event.mEventId)) return false;
+        if(mSaved && equals(event)) return true;
+        mGroupId  = event.mGroupId  ;
+        mIconUrl  = event.mIconUrl  ;
+        mTitle    = event.mTitle    ;
+        mLocation = event.mLocation ;
+        mEventUrl = event.mEventUrl ;
+        mGroup    = event.mGroup    ;
+        mRsvp     = event.mRsvp     ;
+        mMine     = event.mMine     ;
+        mSaved    = event.mSaved    ;
+        mAllDay   = event.mAllDay   ;
+        mStart    = event.mStart    ;
+        mStop     = event.mStop     ;
+        mNew      = event.mNew      ;
+        mTimelimit= event.mTimelimit;
+        return true;
     }
 
     private enum SubscStatus {
@@ -122,15 +165,14 @@ public class InEvent {
             Elements tmp = e.select("div.info a");
             mEventUrl = getAbsoluteUrl(getAttr(tmp, 0, "href"));
             mTitle = tmp.get(0).text();
-            Matcher mat = mActPattern.matcher(mEventUrl);
+            Matcher mat = MACTPATTERN.matcher(mEventUrl);
             if (mat.find())
                 mEventId = mat.group(2);
             String ts = e.select("p.date").get(0).text();
-            DateFormat df = new SimpleDateFormat("dd MMMM yyyy");
             mMine = false;
             mStart = new GregorianCalendar();
             String startdate = ts.substring(0, ts.indexOf("|"));
-            mStart.setTime(df.parse(startdate));
+            mStart.setTime(GROPUEVENTDF.parse(startdate));
         } catch (Exception ex) {
             Log.d(InternationsBot.INTAG, ex.getMessage());
         }
@@ -139,9 +181,10 @@ public class InEvent {
     InEvent(Cursor c) {
         long time;
         mSaved = true;
+        mEventId = c.getString(c.getColumnIndex("id"));
         mGroup = c.getString(c.getColumnIndex("groupdesc"));
         mGroupId = c.getString(c.getColumnIndex("groupid"));
-        mEventId = c.getString(c.getColumnIndex("timelimit"));
+        mTimelimit = c.getLong(c.getColumnIndex("timelimit"));
         mTitle = c.getString(c.getColumnIndex("title"));
         mIconUrl = c.getString(c.getColumnIndex("iconurl"));
         mLocation = c.getString(c.getColumnIndex("location"));
@@ -149,6 +192,8 @@ public class InEvent {
         mRsvp = SubscStatus.FromDb(c.getInt(c.getColumnIndex("subscribed")), mMine);
         mEventUrl = c.getString(c.getColumnIndex("eventurl"));
         time = c.getLong(c.getColumnIndex("starttime"));
+        mAllDay=time%1000==1;
+        time = time-time%1000;
         mStart = new GregorianCalendar();
         mStart.setTimeInMillis(time);
         time = c.getLong(c.getColumnIndex("endtime"));
@@ -171,12 +216,12 @@ public class InEvent {
         tmp = e.select("h3.guide-name a");
         mTitle = tmp != null && tmp.size() > 0 ? tmp.get(0).text() : "";
         mEventUrl = getAbsoluteUrl(getAttr(tmp, 0, "href"));
-        Matcher mat = mActPattern.matcher(mEventUrl);
+        Matcher mat = MACTPATTERN.matcher(mEventUrl);
         if (mat.find()) {
             mGroupId = mat.group(1);
             mEventId = mat.group(2);
         } else {
-            mat = mEventPattern.matcher(mEventUrl);
+            mat = MEVENTPATTERN.matcher(mEventUrl);
             if (mat.find()) mEventId = mat.group(1);
         }
         mRsvp = (getAttr(e.select("span.already-guest img"), 0, "src").equals("")) ? SubscStatus.INVITED : SubscStatus.GOING;
@@ -197,30 +242,30 @@ public class InEvent {
         String startt = tmp.get(0).text();
         String endt = tmp.size() > 1 ? tmp.get(1).text() : null;
         if (endt != null && endd == null) endd = startd;
-        DateFormat df = new SimpleDateFormat("MMM dd,yyyy kk:mm", Locale.US);
-        //DateFormat df = new SimpleDateFormat("MMM dd,yyyy kk:mm");
-        DateFormat dfdo = new SimpleDateFormat("MMM dd,yyyy", Locale.US);
+        mAllDay = startt.equals("");        
         mStart = new GregorianCalendar();
         mStart.getTime().getTime();
-        mStart.setTime(startt.equals("")?dfdo.parse(startd): df.parse(startd + " " + startt));
+        mStart.setTime(mAllDay ? MYEVENTDF_NOTIME.parse(startd) : MYEVENTDF.parse(startd + " " + startt));
         mMine = true;
         if (endd != null) {
             mStop = new GregorianCalendar();
-            mStop.setTime(endt.equals("")?dfdo.parse(endd): df.parse(endd + " " + endt));
+            mStop.setTime((endt == null || endt.equals("")) ? MYEVENTDF_NOTIME.parse(endd) : MYEVENTDF.parse(endd + " " + endt));
         }
     }
 
     void save() {
         SQLiteDatabase db = InApp.get().getDB().getWrdb();
         ContentValues values = new ContentValues();
+        long time = mStart.getTimeInMillis();
+        time = time-time%1000+(mAllDay?1L:0L);
         values.put("groupdesc", mGroup);
         values.put("groupid", mGroupId);
-        values.put("timelimit", mEventId);
+        values.put("timelimit", mTimelimit);
         values.put("title", mTitle);
         values.put("iconurl", mIconUrl);
         values.put("location", mLocation);
         values.put("subscribed", mRsvp.toInt());
-        values.put("starttime", mStart.getTimeInMillis());
+        values.put("starttime", time);
         values.put("endtime", mStop == null ? 0 : mStop.getTimeInMillis());
         values.put("eventurl", mEventUrl);
         values.put("myevent", mMine ? 1 : 0);
@@ -276,5 +321,8 @@ public class InEvent {
 
     public boolean beenInvited() {
         return mRsvp == SubscStatus.INVITED;
+    }
+    public boolean addedrecently(){
+        return (new Date()).getTime()- mTimelimit <24*3600000;
     }
 }

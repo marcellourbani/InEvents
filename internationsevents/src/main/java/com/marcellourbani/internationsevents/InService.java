@@ -16,19 +16,27 @@ package com.marcellourbani.internationsevents;
 
 import android.app.AlarmManager;
 import android.app.IntentService;
+import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.AsyncTask;
 import android.preference.PreferenceManager;
-import android.util.Log;
+import android.support.v4.app.NotificationCompat;
+import android.support.v4.app.TaskStackBuilder;
 
+
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
 public class InService extends IntentService {
     public static final String RELOAD_EVENTS = "INEVENTS_RELOAD";
+    final static DateFormat DATEFORMAT = new SimpleDateFormat("dd.MM.yy kk:mm"),
+                            ALLLDAYDF = new SimpleDateFormat("dd.MM.yy");
     SharedPreferences prefs;
+    private InternationsBot bot;
 
     public InService() {
         super("InService");
@@ -73,7 +81,7 @@ public class InService extends IntentService {
         @Override
         protected Boolean doInBackground(String... strings) {
             if(prefs==null)prefs= PreferenceManager.getDefaultSharedPreferences(InApp.get());
-            InternationsBot bot = new InternationsBot(prefs);
+            bot = new InternationsBot(prefs);
             bot.clearold();
             bot.loadEvents();
             bot.loadMyGroups();
@@ -96,7 +104,38 @@ public class InService extends IntentService {
         @Override
         protected void onPostExecute(Boolean aBoolean) {
             super.onPostExecute(aBoolean);
+            sendNotifications();
             sendBroadcast(new Intent(RELOAD_EVENTS));
+        }
+    }
+
+    private void sendNotifications() {
+        if(!prefs.getBoolean("pr_notify_new", true)) return;
+        NotificationManager mNotificationManager =
+                (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
+        for(InEvent e:bot.getEvents()){
+            if(e.mNew){
+                String title = (e.isEvent()? "New Event":"New Activity")+e.mTitle;
+                String text = e.mAllDay?ALLLDAYDF.format(e.mStart.getTime()):DATEFORMAT.format(e.mStart.getTime());
+                if(e.mGroup!=null)text = "from:" +e.mGroup+"\n"+text;
+                if(e.mLocation!=null)text = text+" at " +e.mLocation;
+                NotificationCompat.Builder mBuilder =
+                        new NotificationCompat.Builder(this)
+                                .setSmallIcon(R.drawable.ic_launcher)
+                                .setContentTitle(title)
+                                .setContentText(text);
+                Intent resultIntent = new Intent(this, EventList.class);
+                TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
+                stackBuilder.addParentStack(EventList.class);
+                stackBuilder.addNextIntent(resultIntent);
+                PendingIntent resultPendingIntent =
+                        stackBuilder.getPendingIntent(
+                                0,
+                                PendingIntent.FLAG_UPDATE_CURRENT
+                        );
+                mBuilder.setContentIntent(resultPendingIntent);
+                mNotificationManager.notify(Integer.parseInt(e.mEventId), mBuilder.build());
+            }
         }
     }
 }

@@ -227,13 +227,18 @@ public class EventList extends Activity {
                 }
             }
 
-            protected void onProgressUpdate() {
-                // onPostExecute(true);
+            @Override
+            protected void onProgressUpdate(Integer... values) {
+                super.onProgressUpdate(values);
+                if (mEventAdapter!=null &&EventsFragment.this.getListView()!=null){
+                    mEventAdapter.updateEvents(mIbot.mEvents);
+                    EventsFragment.this.getListView().invalidateViews();
+                }
             }
 
             void refresh(boolean all) {
                 mIbot.readMyEvents(true);//will save everything later
-                // publishProgress();
+                publishProgress();
                 if (all) {
                     if (InError.isOk()) mIbot.readMyGroups();
                     if (InError.isOk()) mIbot.saveGroups();

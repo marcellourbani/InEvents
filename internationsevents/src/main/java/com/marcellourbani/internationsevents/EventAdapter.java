@@ -34,8 +34,8 @@ import java.util.Comparator;
 import java.util.List;
 
 public class EventAdapter extends ArrayAdapter<InEvent> {
-    final DateFormat df = new SimpleDateFormat("dd.MM.yy"),
-            tf = new SimpleDateFormat("kk:mm");
+    final static DateFormat DF = new SimpleDateFormat("dd.MM.yy"),
+            TF = new SimpleDateFormat("kk:mm");
     private final List<InEvent> events;
     EventList eventList;
 
@@ -89,8 +89,8 @@ public class EventAdapter extends ArrayAdapter<InEvent> {
                 locicon.setOnClickListener(null);
                 location.setOnClickListener(null);
             }else{
-                startdt.setText(event.mStart != null ? df.format(event.mStart.getTime()) : "");
-                starttm.setText(event.mStart != null && event.mMine ? tf.format(event.mStart.getTime()) : "");
+                startdt.setText(event.mStart != null ? DF.format(event.mStart.getTime()) : "");
+                starttm.setText(event.mStart != null && event.mMine ? TF.format(event.mStart.getTime()) : "");
                 group.setText(event.mGroup);
                 Picasso.with(eventList).load(event.mIconUrl).into(icon);
                 title.setText(event.mTitle);
@@ -116,7 +116,7 @@ public class EventAdapter extends ArrayAdapter<InEvent> {
                         eventList.showmap(event);
                     }
                 };
-                newicon.setVisibility(event.mNew?View.VISIBLE:View.INVISIBLE);
+                newicon.setVisibility(event.addedrecently()?View.VISIBLE:View.INVISIBLE);
                 if (event.mLocation != null && event.mLocation.length() > 0) {
                     locicon.setOnClickListener(startmap);
                     location.setOnClickListener(startmap);

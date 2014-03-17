@@ -41,4 +41,8 @@
         android:summary="In hours, 0 means never refresh in background"
         android:numeric="integer"
         android:defaultValue="6"/>
+    <CheckBoxPreference
+        android:key="pr_notify_new"
+        android:title="Notify new events"
+        android:summary="Generate notifications for new events"/>
 </PreferenceScreen>
