@@ -9,6 +9,7 @@ import android.preference.PreferenceManager;
 
 
 public class InApp extends Application {
+    public final static String NOTIFIEDEVENT = "Notified";
     private static InApp _inst;
     protected static InternationsBot mIbot;
     private InDatabase db;

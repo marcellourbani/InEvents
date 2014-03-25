@@ -16,11 +16,13 @@ package com.marcellourbani.internationsevents;
 
 import android.app.AlarmManager;
 import android.app.IntentService;
+import android.app.Notification;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
+import android.net.Uri;
 import android.os.AsyncTask;
 import android.preference.PreferenceManager;
 import android.support.v4.app.NotificationCompat;
@@ -69,7 +71,7 @@ public class InService extends IntentService {
                 alarm.cancel(pintent);
             else return;
         }
-        alarm.setInexactRepeating(AlarmManager.RTC_WAKEUP, start + period, period, pintent);
+        alarm.setInexactRepeating(AlarmManager.RTC_WAKEUP, start, period, pintent);
     }
 
     private static long getPeriod() {
@@ -123,8 +125,13 @@ public class InService extends IntentService {
                         new NotificationCompat.Builder(this)
                                 .setSmallIcon(R.drawable.ic_launcher)
                                 .setContentTitle(title)
-                                .setContentText(text);
+                                .setContentText(text)
+                                .setAutoCancel(true)
+                                .setDefaults(Notification.DEFAULT_LIGHTS|Notification.DEFAULT_VIBRATE);
                 Intent resultIntent = new Intent(this, EventList.class);
+                resultIntent.setData(Uri.parse("content://" + e.mEventId));
+                resultIntent.putExtra(InApp.NOTIFIEDEVENT, e.mEventId);
+                resultIntent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
                 TaskStackBuilder stackBuilder = TaskStackBuilder.create(this);
                 stackBuilder.addParentStack(EventList.class);
                 stackBuilder.addNextIntent(resultIntent);
@@ -135,6 +142,7 @@ public class InService extends IntentService {
                         );
                 mBuilder.setContentIntent(resultPendingIntent);
                 mNotificationManager.notify(Integer.parseInt(e.mEventId), mBuilder.build());
+
             }
         }
     }

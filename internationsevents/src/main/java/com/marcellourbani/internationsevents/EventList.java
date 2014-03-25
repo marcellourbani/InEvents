@@ -23,29 +23,38 @@ import android.content.IntentFilter;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.preference.PreferenceManager;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+import android.widget.ListView;
 
 public class EventList extends Activity {
     private static EventsFragment mFrag;
     protected MenuItem refresh;
     private static final int SETPASSWORD = 2001;
     private DataUpdateReceiver dataUpdateReceiver;
+    String mNotifiedEvent;
+    Intent mLastIntent=null;
 
     protected enum Operations {LOAD, RSVPYES, RSVPNO, REFRESH, REFRESHALL}
 
     @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        mLastIntent = intent;
+        mNotifiedEvent = intent.getStringExtra(InApp.NOTIFIEDEVENT);
+    }
+
+    @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        //TODO new event notification
         setContentView(R.layout.activity_event_list);
         final String EVFRAG = "EVFRAG";
         mFrag = (EventsFragment) getFragmentManager().findFragmentByTag(EVFRAG);
         if (savedInstanceState == null || mFrag == null) {
+            mNotifiedEvent = getIntent().getStringExtra(InApp.NOTIFIEDEVENT);
             mFrag = new EventsFragment(InApp.getbot());
             mFrag.setRetainInstance(true);
             getFragmentManager().beginTransaction()
@@ -60,6 +69,10 @@ public class EventList extends Activity {
         super.onResume();
         if (dataUpdateReceiver == null) dataUpdateReceiver = new DataUpdateReceiver();
         IntentFilter intentFilter = new IntentFilter(InService.RELOAD_EVENTS);
+        if(mLastIntent!=null){
+            mNotifiedEvent=mLastIntent.getStringExtra(InApp.NOTIFIEDEVENT);
+            mFrag.scrollToNotified();
+        }
         registerReceiver(dataUpdateReceiver, intentFilter);
     }
 
@@ -106,6 +119,8 @@ public class EventList extends Activity {
                 mFrag.loadevents(true, false);
                 return true;
             case R.id.action_refresh_all:
+                //Intent i = new Intent(InApp.get(),InService.class);
+                //InApp.get().startService(i);
                 mFrag.loadevents(true, true);
                 return true;
         }
@@ -164,6 +179,7 @@ public class EventList extends Activity {
         @Override
         public void onAttach(Activity activity) {
             super.onAttach(activity);
+            scrollToNotified();
         }
 
         @Override
@@ -185,7 +201,22 @@ public class EventList extends Activity {
                     mNw.execute(Operations.REFRESH);
             } else mNw.execute(Operations.LOAD);
         }
-
+         void scrollToNotified(){
+            EventList el = ((EventList) getActivity());
+            if(el!=null&&el.mNotifiedEvent!=null&&mEventAdapter!=null){
+                InEvent ev = mIbot.mEvents.get(el.mNotifiedEvent);
+                if(ev!=null){
+                    int pos=mEventAdapter.getPosition(ev);
+                    if(pos>=0){
+                        EventsFragment.this.getListView().smoothScrollToPosition(pos);
+//                        getListView().setChoiceMode(ListView.CHOICE_MODE_SINGLE);
+//                        getListView().setSelector(android.R.color.darker_gray);
+//                        EventsFragment.this.getListView().setSelection(pos);
+                    }
+                }
+                el.mNotifiedEvent=null;
+            }
+        }
         public void rsvp(InEvent event, boolean going) {
             EventList el = (EventList) getActivity();
             if(el!=null)el.setProgressIndicator(true);
@@ -219,6 +250,7 @@ public class EventList extends Activity {
                     }
                     if (mOperation == Operations.RSVPNO || mOperation == Operations.RSVPYES)
                         InError.get().showmax(InError.ErrSeverity.INFO);
+                    else scrollToNotified();
                 } else {
                     InError.get().showmax();
                     if (!mIbot.passIsSet() || InError.get().hasType(InError.ErrType.LOGIN)) {
