@@ -169,6 +169,7 @@ public class InternationsBot {
         Grouppage page = new Grouppage();
         try {
             String text = mClient.geturl_string(url);
+            if (text == null) return page;
             Document doc = Jsoup.parse(extractTable(text, "search-results"));
             Elements elements = doc.select("table#search-results tbody tr");
             for (Element e : elements) {
@@ -273,19 +274,21 @@ public class InternationsBot {
         try {
             ArrayMap<String, InEvent> events = new ArrayMap<String, InEvent>();
             String ev = extractTable(mClient.geturl_string(MYEVENTSURL), "my_upcoming_events_table");
-            Document doc = Jsoup.parse(ev);
-            Elements elements = doc.select("#my_upcoming_events_table tbody tr");
-            for (Element evel : elements) {
-                try {
-                    InEvent event = new InEvent(evel);
-                    addOrUpdateEvent(event);
-                    events.put(event.mEventId, event);
-                } catch (MalformedURLException e) {
-                    InError.get().add(InError.ErrType.PARSE, "Error parsing my events URL" + e.getMessage());
-                    Log.d(INTAG, e.getMessage());
-                } catch (ParseException e) {
-                    InError.get().add(InError.ErrType.PARSE, "Error parsing my events" + e.getMessage());
-                    Log.d(INTAG, e.getMessage());
+            if (ev != null) {
+                Document doc = Jsoup.parse(ev);
+                Elements elements = doc.select("#my_upcoming_events_table tbody tr");
+                for (Element evel : elements) {
+                    try {
+                        InEvent event = new InEvent(evel);
+                        addOrUpdateEvent(event);
+                        events.put(event.mEventId, event);
+                    } catch (MalformedURLException e) {
+                        InError.get().add(InError.ErrType.PARSE, "Error parsing my events URL" + e.getMessage());
+                        Log.d(INTAG, e.getMessage());
+                    } catch (ParseException e) {
+                        InError.get().add(InError.ErrType.PARSE, "Error parsing my events" + e.getMessage());
+                        Log.d(INTAG, e.getMessage());
+                    }
                 }
             }
             if (!InError.isOk()) return;
@@ -301,10 +304,10 @@ public class InternationsBot {
                 writeRefresh(Refreshkeys.MYEVENTS);
             }
         } catch (IOException e) {
-            InError.get().add(InError.ErrType.NETWORK, "Error downloading my groups.\n" + e.getMessage());
+            InError.get().add(InError.ErrType.NETWORK, "Error downloading my events.\n" + e.getMessage());
             Log.d(INTAG, e.getMessage());
         } catch (Exception e) {
-            InError.get().add(InError.ErrType.UNKNOWN, "Error downloading my groups.\n" + e.getMessage());
+            InError.get().add(InError.ErrType.UNKNOWN, "Error downloading my events.\n" + e.getMessage());
             Log.d(INTAG, e.getMessage());
         }
     }

@@ -3,7 +3,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:0.7.+'
+        classpath 'com.android.tools.build:gradle:0.9.+'
     }
 }
 apply plugin: 'android'
@@ -19,8 +19,8 @@ android {
     defaultConfig {
         minSdkVersion 14
         targetSdkVersion 14
-        versionCode 6
-        versionName "1.14"
+        versionCode 7
+        versionName "1.15"
     }
     buildTypes {
         release {
