@@ -123,6 +123,12 @@ public class EventList extends Activity {
                 //InApp.get().startService(i);
                 mFrag.loadevents(true, true);
                 return true;
+            case R.id.action_home:
+                Intent web = new Intent(EventList.this, InWeb.class);
+                web.setData(Uri.parse(InternationsBot.BASEURL));
+                web.putExtra(InWeb.CURRENT_COOKIES, InApp.getbot().getCookies());
+                startActivity(web);
+                return true;
         }
         return super.onOptionsItemSelected(item);
     }
@@ -209,9 +215,8 @@ public class EventList extends Activity {
                     int pos=mEventAdapter.getPosition(ev);
                     if(pos>=0){
                         EventsFragment.this.getListView().smoothScrollToPosition(pos);
-//                        getListView().setChoiceMode(ListView.CHOICE_MODE_SINGLE);
-//                        getListView().setSelector(android.R.color.darker_gray);
-//                        EventsFragment.this.getListView().setSelection(pos);
+                        getListView().setChoiceMode(ListView.CHOICE_MODE_SINGLE);
+                        EventsFragment.this.getListView().setSelection(pos);
                     }
                 }
                 el.mNotifiedEvent=null;

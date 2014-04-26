@@ -131,7 +131,7 @@ public class EventAdapter extends ArrayAdapter<InEvent> {
         final InEvent event = getItem(position);
         if (view == null) {
             LayoutInflater inflater = (LayoutInflater) getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-            view = inflater.inflate(R.layout.event_item, null);
+            view = inflater.inflate(R.layout.event_item, parent);
             if (view != null) {
                 view.setTag(new Controls(view,event));
             }

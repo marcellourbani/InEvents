@@ -14,10 +14,10 @@
  */
 package com.marcellourbani.internationsevents;
 
+import android.annotation.TargetApi;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
-import android.content.res.Resources;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.TimeZone;
 
 
+@TargetApi(Build.VERSION_CODES.JELLY_BEAN)
 public class InCalendar {
     private static final Uri CAL_URI = CalendarContract.Calendars.CONTENT_URI;
     private static final String CALENDARS_WHERE = Calendars.CALENDAR_ACCESS_LEVEL + ">=" + Calendars.CAL_ACCESS_CONTRIBUTOR;
@@ -81,8 +82,7 @@ public class InCalendar {
 
     public static void addEvent(Context context, InEvent event) {
         ContentResolver cr = context.getContentResolver();
-        Uri uri = cr.insert(Events.CONTENT_URI, getEventValues(context, event));
-        String eventID = uri.getLastPathSegment();
+        cr.insert(Events.CONTENT_URI, getEventValues(context, event));
     }
     private static String[] calendarColumns(){
         if(hasurl())return new String[]{Events._ID, Events.DESCRIPTION, CUSTOMURL};
@@ -116,7 +116,7 @@ public class InCalendar {
     public static List<InCalendar> getCalendars(Context context) {
         ArrayList<InCalendar> calendars = null;
         ContentResolver cr = context.getContentResolver();
-        Resources r = context.getResources();
+        context.getResources();
         Cursor c = cr.query(CAL_URI, new String[]{Calendars._ID, Calendars.CALENDAR_DISPLAY_NAME},
                 CALENDARS_WHERE, null, Calendars.DEFAULT_SORT_ORDER);
         try {
@@ -125,14 +125,13 @@ public class InCalendar {
                 while (c.moveToNext()) {
                     calendars.add(new InCalendar(c));
                 }
-                return calendars;
             }
         } finally {
             if (c != null) {
                 c.close();
             }
-            return calendars;
         }
+        return calendars;
     }
 
     public static boolean addCalendarsPreferences(Context context, ListPreference calendarPref) {
@@ -140,9 +139,11 @@ public class InCalendar {
         if (calendars == null || calendars.size() == 0) return false;
         String calendar = getDefaultCalendar(context);
         int idx = 0;
-        CharSequence[] entries = new CharSequence[calendars.size()];
-        CharSequence[] entryvalues = new CharSequence[calendars.size()];
-        for (int i = 0; i < calendars.size(); i++) {
+        CharSequence[] entries = new CharSequence[calendars.size()+1];
+        CharSequence[] entryvalues = new CharSequence[calendars.size()+1];
+        entryvalues[0] = "";
+        entries[0] = "None - do not sync events";
+        for (int i = 1; i < calendars.size()+1; i++) {
             entryvalues[i] = calendars.get(i).getId();
             entries[i] = calendars.get(i).getName();
             if (calendar.equals(calendars.get(i).getId())) idx = i;
@@ -175,7 +176,7 @@ public class InCalendar {
                 eventId = InEvent.idFromurl(url);
             }else{
                 final int DESCCOL = cursor.getColumnIndex(Events.DESCRIPTION);
-                String url = cursor.getString(DESCCOL);;
+                String url = cursor.getString(DESCCOL);
                 eventId = InEvent.idFromurl(url);
             }
             if (eventId != null) {

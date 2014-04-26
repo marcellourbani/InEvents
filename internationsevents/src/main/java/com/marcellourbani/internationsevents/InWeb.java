@@ -22,7 +22,6 @@ import android.graphics.Point;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.preference.PreferenceManager;
 import android.view.Display;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -33,8 +32,6 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
-
-import java.util.Objects;
 
 public class InWeb extends Activity {
 
@@ -49,14 +46,36 @@ public class InWeb extends Activity {
             else
               loading.setActionView(null);
         }
-    };
+    }
     /* Class that prevents opening the Browser */
     private class InsideWebViewClient extends WebViewClient {
         @Override
         public boolean shouldOverrideUrlLoading(WebView view, String url) {
-            setLoading(true);
-            view.loadUrl(url);
-            return true;
+            if (url.startsWith("tel:")) {
+                Intent intent = new Intent(Intent.ACTION_DIAL,
+                        Uri.parse(url));
+                startActivity(intent);
+                return true;
+            }else if(url.startsWith("http:") || url.startsWith("https:")) {
+                setLoading(true);
+                view.loadUrl(url);
+                return true;
+            }else if (url.startsWith("mailto:")) {
+                try {
+                    Intent emailIntent = new Intent(Intent.ACTION_SEND, Uri.parse(url));
+                    emailIntent.setType("message/rfc822");
+                    String recipient = url.substring( url.indexOf(":")+1 );
+                    emailIntent.putExtra(android.content.Intent.EXTRA_EMAIL, new String[]{recipient});
+                    emailIntent.putExtra(android.content.Intent.EXTRA_SUBJECT, "");
+                    emailIntent.putExtra(android.content.Intent.EXTRA_TEXT, "");
+
+                    InWeb.this.startActivity(Intent.createChooser(emailIntent, "Send mail..."));
+                }
+                catch (Exception ex) {}
+                return true;
+            }
+            return false;
+
         }
 
         @Override
@@ -105,7 +124,7 @@ public class InWeb extends Activity {
         Display display = ((WindowManager) getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
         Point p = new Point();
         display.getSize(p);
-        Double val = new Double(p.x) / new Double(1280);
+        Double val = p.x /  1280d;
         val = val * 100d;
         return val.intValue();
     }

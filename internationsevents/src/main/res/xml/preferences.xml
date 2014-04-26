@@ -27,8 +27,8 @@
         android:defaultValue="24"/>
     <EditTextPreference
         android:key="pr_group_timeout"
-        android:summary="Time after which events from my groups will be reloaded on refresh (hours)"
-        android:title="My group events expiration time"
+        android:summary="Time after which my group subscriptions will be reloaded on refresh (hours)"
+        android:title="My group subscriptions expiration time"
         android:numeric="integer"
         android:defaultValue="24"/>
     <CheckBoxPreference
