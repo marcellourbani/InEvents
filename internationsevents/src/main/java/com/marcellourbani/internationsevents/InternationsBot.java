@@ -47,7 +47,7 @@ import java.util.regex.Pattern;
 public class InternationsBot {
     public static final String BASEURL = "http://www.internations.org";
     private static final String MYEVENTSURL = "http://www.internations.org/events/my?ref=he_ev_me",
-            SIGNUPURL = "https://www.internations.org/users/signin";
+            SIGNUPURL = "https://www.internations.org/security/do-login/";
     static final String INTAG = "IN_EVENTS";
     private String mUser;
     private String mPass;
@@ -273,7 +273,8 @@ public class InternationsBot {
     public void readMyEvents(boolean save) {
         try {
             ArrayMap<String, InEvent> events = new ArrayMap<String, InEvent>();
-            String ev = extractTable(mClient.geturl_string(MYEVENTSURL), "my_upcoming_events_table");
+            String ev = mClient.geturl_string(MYEVENTSURL);
+            ev = extractTable(ev, "my_upcoming_events_table");
             if (ev != null) {
                 Document doc = Jsoup.parse(ev);
                 Elements elements = doc.select("#my_upcoming_events_table tbody tr");
@@ -358,8 +359,9 @@ public class InternationsBot {
                     List<NameValuePair> parms = new ArrayList<NameValuePair>();
                     parms.add(new BasicNameValuePair("user_email", mUser));
                     parms.add(new BasicNameValuePair("user_password", mPass));
-                    mSigned = mClient.posturl_string(SIGNUPURL, parms)
-                            .indexOf("Incorrect email or password") <= 0;
+                    parms.add(new BasicNameValuePair("remember_me","1"));
+                    String signoutcome = mClient.posturl_string(SIGNUPURL, parms);
+                    mSigned = signoutcome.indexOf("You must login to see this page.") <= 0;
                     if (!mSigned)
                         InError.get().add(InError.ErrType.LOGIN, "Error signing in, check your user and password");
                 } catch (Throwable e) {
