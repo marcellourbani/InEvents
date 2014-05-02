@@ -144,9 +144,10 @@ public class InCalendar {
         entryvalues[0] = "";
         entries[0] = "None - do not sync events";
         for (int i = 1; i < calendars.size()+1; i++) {
-            entryvalues[i] = calendars.get(i).getId();
-            entries[i] = calendars.get(i).getName();
-            if (calendar.equals(calendars.get(i).getId())) idx = i;
+            InCalendar cal =calendars.get(i-1);
+            entryvalues[i] = cal.getId();
+            entries[i] = cal.getName();
+            if (calendar!=null && calendar.equals(cal.getId())) idx = i;
         }
         calendarPref.setEntries(entries);
         calendarPref.setEntryValues(entryvalues);
