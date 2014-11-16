@@ -71,7 +71,7 @@ public class InWeb extends Activity {
 
                     InWeb.this.startActivity(Intent.createChooser(emailIntent, "Send mail..."));
                 }
-                catch (Exception ex) {}
+                catch (Exception ignored) {}
                 return true;
             }
             return false;
@@ -105,9 +105,14 @@ public class InWeb extends Activity {
         web.setWebViewClient(new InsideWebViewClient());
         web.setWebChromeClient(new WebChromeClient());
         if(savedInstanceState == null){
-            if (eventurl != null)
+            if (eventurl != null){
+                setLoading(true);
                 web.loadUrl(eventurl);
-            else if (uri!=null) new SignWorker().execute(uri.toString());
+            }
+            else if (uri!=null) {
+                setLoading(true);
+                new SignWorker().execute(uri.toString());
+            }
         }
     }
     void setcookies(Bundle cookies){
@@ -130,7 +135,7 @@ public class InWeb extends Activity {
     }
 
     @Override
-    protected void onSaveInstanceState(Bundle outState) {
+    protected void onSaveInstanceState( Bundle outState) {
         super.onSaveInstanceState(outState);
         if (web != null) web.saveState(outState);
     }
@@ -161,7 +166,6 @@ public class InWeb extends Activity {
         @Override
         protected Boolean doInBackground(String...strings) {
             url=strings[0];
-            setLoading(true);
             return InApp.getbot().sign();
         }
     }

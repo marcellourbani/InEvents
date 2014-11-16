@@ -23,6 +23,7 @@ import android.content.IntentFilter;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -177,6 +178,9 @@ public class EventList extends Activity {
         protected static InternationsBot mIbot;
         private NetWorker mNw;
         private EventAdapter mEventAdapter = null;
+        public EventsFragment() {
+            mIbot = InApp.get().getbot();
+        }
 
         public EventsFragment(InternationsBot bot) {
             mIbot = bot;
@@ -209,7 +213,7 @@ public class EventList extends Activity {
         }
          void scrollToNotified(){
             EventList el = ((EventList) getActivity());
-            if(el!=null&&el.mNotifiedEvent!=null&&mEventAdapter!=null){
+            if(el!=null&&el.mNotifiedEvent!=null&&mEventAdapter!=null &&mIbot!=null){
                 InEvent ev = mIbot.mEvents.get(el.mNotifiedEvent);
                 if(ev!=null){
                     int pos=mEventAdapter.getPosition(ev);

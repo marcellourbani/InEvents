@@ -116,7 +116,7 @@ public class InService extends IntentService {
         NotificationManager mNotificationManager =
                 (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
         for(InEvent e:bot.getEvents()){
-            if(e.mNew){
+            if(e.mNew &&e.mEventId!=null){
                 String title = (e.isEvent()? "New Event":"New Activity")+e.mTitle;
                 String text = e.mAllDay?ALLLDAYDF.format(e.mStart.getTime()):DATEFORMAT.format(e.mStart.getTime());
                 if(e.mGroup!=null)text = "from:" +e.mGroup+"\n"+text;
@@ -142,7 +142,6 @@ public class InService extends IntentService {
                         );
                 mBuilder.setContentIntent(resultPendingIntent);
                 mNotificationManager.notify(Integer.parseInt(e.mEventId), mBuilder.build());
-
             }
         }
     }
