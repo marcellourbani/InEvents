@@ -37,9 +37,9 @@ import java.util.regex.Pattern;
 
 public class InEvent {
     private static final Pattern MACTPATTERN = Pattern.compile("activity-group/([0-9]+)/activity/([0-9]+)");
-    private static final Pattern MEVENTPATTERN = Pattern.compile("/events/.*[^0-9]([0-9]+)$");
-    private static final DateFormat MYEVENTDF = new SimpleDateFormat("MMM dd,yyyy kk:mm", Locale.US);
-    private static final DateFormat MYEVENTDF_NOTIME = new SimpleDateFormat("MMM dd,yyyy", Locale.US);
+    private static final Pattern MEVENTPATTERN = Pattern.compile("/events?/.*[^0-9]([0-9]+)$");
+    private static final DateFormat MYEVENTDF = new SimpleDateFormat("dd MMM kk:mm", Locale.US);
+    private static final DateFormat MYEVENTDF_NOTIME = new SimpleDateFormat("MMM dd", Locale.US);
     private static final DateFormat GROPUEVENTDF = new SimpleDateFormat("dd MMMM yyyy", Locale.US);
     String mGroupId = null;
     String mEventId;
@@ -229,7 +229,7 @@ public class InEvent {
             if (tmp != null && tmp.size() > 0) {
                 mGroup = tmp.get(0).text();
             }
-            tmp = e.select("span.t-attending-activity-message");
+            tmp = isEvent()?e.select("span.t-attending-event-message"): e.select("span.t-attending-activity-message");
             mRsvp = tmp != null && tmp.size() > 0 ? SubscStatus.GOING : SubscStatus.NOTGOING;
             mLocation = "";
             tmp = e.select("span.teaserRow__date");

@@ -270,18 +270,36 @@ public class InternationsBot {
         } else return null;
     }
 
+    private String extractDiv(String source, String clas, String nextclass) {
+        int start, end = 0;
+        Matcher startm = Pattern.compile("<div[^>]*class=[^>=]*" + clas).matcher(source);
+        Matcher endm = Pattern.compile("<div[^>]*class=[^>=]*" + nextclass).matcher(source);
+        if (startm.find()) {
+            start = startm.start();
+        } else return null;
+        if (endm.find()) {
+            end = endm.start() - 1;
+        }
+        if (end > start)
+            return source.substring(start, end);
+        else return source.substring(start);
+    }
+
     public void readMyEvents(boolean save) {
+        final String DIVCLASS="js-calendar-my-events",NEXTDIVCLAS="t-recommended-events";
         try {
             ArrayMap<String, InEvent> events = new ArrayMap<>();
             String ev = mClient.geturl_string(MYEVENTSURL);
             String evtab = extractTable(ev, "my_upcoming_events_table");
-            if(evtab!=null&&evtab.length()>0)ev = evtab;else evtab=null;
+            if (evtab != null && evtab.length() > 0) ev = evtab;
+            else evtab = null;
+            if(evtab==null)ev = extractDiv(ev,DIVCLASS,NEXTDIVCLAS);
             if (ev != null) {
                 Document doc = Jsoup.parse(ev);
-                Elements elements = evtab==null?doc.select("div.js-calendar-container div.t-calendar-entry"):doc.select("#my_upcoming_events_table tbody tr");
+                Elements elements = evtab == null ? doc.select("div."+DIVCLASS+" div.t-calendar-entry") : doc.select("#my_upcoming_events_table tbody tr");
                 for (Element evel : elements) {
                     try {
-                        InEvent event = new InEvent(evel,evtab==null);
+                        InEvent event = new InEvent(evel, evtab == null);
                         addOrUpdateEvent(event);
                         events.put(event.mEventId, event);
                     } catch (MalformedURLException e) {
@@ -360,7 +378,7 @@ public class InternationsBot {
                     List<NameValuePair> parms = new ArrayList<>();
                     parms.add(new BasicNameValuePair("user_email", mUser));
                     parms.add(new BasicNameValuePair("user_password", mPass));
-                    parms.add(new BasicNameValuePair("remember_me","1"));
+                    parms.add(new BasicNameValuePair("remember_me", "1"));
                     String signoutcome = mClient.posturl_string(SIGNUPURL, parms);
                     mSigned = signoutcome.indexOf("You must login to see this page.") <= 0;
                     if (!mSigned)
