@@ -46,56 +46,58 @@ public class InEvent {
     String mIconUrl, mTitle, mLocation, mEventUrl, mGroup;
 
     private SubscStatus mRsvp = SubscStatus.NOTGOING;
-    boolean mMine, mSaved,mAllDay;
+    boolean mMine, mSaved, mAllDay;
     GregorianCalendar mStart, mStop;
     public boolean mNew;
-    long mTimelimit=0L;
+    long mTimelimit = 0L;
 
     public static String idFromurl(String url) {
-        if(url==null)return null;
+        if (url == null) return null;
         Matcher m = MACTPATTERN.matcher(url);
-        if(m.find()) return m.group(2);
-        m= MEVENTPATTERN.matcher(url);
-        if(m.find()) return m.group(1);
+        if (m.find()) return m.group(2);
+        m = MEVENTPATTERN.matcher(url);
+        if (m.find()) return m.group(1);
         return null;
     }
-    public boolean equals(InEvent event){
-        return mRsvp   == event.mRsvp  &&
-                mMine   == event.mMine  &&
+
+    public boolean equals(InEvent event) {
+        return mRsvp == event.mRsvp &&
+                mMine == event.mMine &&
                 mAllDay == event.mAllDay &&
-                (mGroupId ==null?(event.mGroupId ==null):mGroupId .equals(event.mGroupId ))&&
-                (mEventId ==null?(event.mEventId ==null):mEventId .equals(event.mEventId ))&&
-                (mIconUrl ==null?(event.mIconUrl ==null):mIconUrl .equals(event.mIconUrl ))&&
-                (mTitle   ==null?(event.mTitle   ==null):mTitle   .equals(event.mTitle   ))&&
-                (mLocation==null?(event.mLocation==null):mLocation.equals(event.mLocation))&&
-                (mEventUrl==null?(event.mEventUrl==null):mEventUrl.equals(event.mEventUrl))&&
-                (mGroup   ==null?(event.mGroup   ==null):mGroup   .equals(event.mGroup   ))&&
-                (mStart   ==null?(event.mStart   ==null):mStart   .equals(event.mStart   ))&&
-                (mStop    ==null?(event.mStop    ==null):mStop    .equals(event.mStop    ));
+                (mGroupId == null ? (event.mGroupId == null) : mGroupId.equals(event.mGroupId)) &&
+                (mEventId == null ? (event.mEventId == null) : mEventId.equals(event.mEventId)) &&
+                (mIconUrl == null ? (event.mIconUrl == null) : mIconUrl.equals(event.mIconUrl)) &&
+                (mTitle == null ? (event.mTitle == null) : mTitle.equals(event.mTitle)) &&
+                (mLocation == null ? (event.mLocation == null) : mLocation.equals(event.mLocation)) &&
+                (mEventUrl == null ? (event.mEventUrl == null) : mEventUrl.equals(event.mEventUrl)) &&
+                (mGroup == null ? (event.mGroup == null) : mGroup.equals(event.mGroup)) &&
+                (mStart == null ? (event.mStart == null) : mStart.equals(event.mStart)) &&
+                (mStop == null ? (event.mStop == null) : mStop.equals(event.mStop));
         //mNew and mTimelimit are ignored
     }
+
     public boolean merge(InEvent event) {
-        if(mEventId==null||mEventId.equals("")){
+        if (mEventId == null || mEventId.equals("")) {
             mEventId = event.mEventId;
-            mAllDay=event.mAllDay;
-            mNew=event.mNew;
-            mTimelimit=event.mTimelimit;
-        }else if(!mEventId.equals(event.mEventId)) return false;
-        if(mSaved && equals(event)) return true;
-        mGroupId  = event.mGroupId  ;
-        mIconUrl  = event.mIconUrl  ;
-        mTitle    = event.mTitle    ;
-        mLocation = event.mLocation ;
-        mEventUrl = event.mEventUrl ;
-        mGroup    = event.mGroup    ;
-        mRsvp     = event.mRsvp     ;
-        mMine     = event.mMine     ;
-        mSaved    = event.mSaved    ;
-        mAllDay   = event.mAllDay   ;
-        mStart    = event.mStart    ;
-        mStop     = event.mStop     ;
-        mNew      = event.mNew      ;
-        mTimelimit= event.mTimelimit;
+            mAllDay = event.mAllDay;
+            mNew = event.mNew;
+            mTimelimit = event.mTimelimit;
+        } else if (!mEventId.equals(event.mEventId)) return false;
+        if (mSaved && equals(event)) return true;
+        mGroupId = event.mGroupId;
+        mIconUrl = event.mIconUrl;
+        mTitle = event.mTitle;
+        mLocation = event.mLocation;
+        mEventUrl = event.mEventUrl;
+        mGroup = event.mGroup;
+        mRsvp = event.mRsvp;
+        mMine = event.mMine;
+        mSaved = event.mSaved;
+        mAllDay = event.mAllDay;
+        mStart = event.mStart;
+        mStop = event.mStop;
+        mNew = event.mNew;
+        mTimelimit = event.mTimelimit;
         return true;
     }
 
@@ -138,10 +140,12 @@ public class InEvent {
             return "";
         }
     }
+
     public String getRsvpUrl(boolean attend) {
-        return getRsvpUrl(attend,beenInvited());
+        return getRsvpUrl(attend, beenInvited());
     }
-    public String getRsvpUrl(boolean attend,boolean invited) {
+
+    public String getRsvpUrl(boolean attend, boolean invited) {
         if (mGroupId == null) {
             return "http://www.internations.org/events/" +
                     (attend ? "signin/" : "signout/") + mEventId;
@@ -192,8 +196,8 @@ public class InEvent {
         mRsvp = SubscStatus.FromDb(c.getInt(c.getColumnIndex("subscribed")), mMine);
         mEventUrl = c.getString(c.getColumnIndex("eventurl"));
         time = c.getLong(c.getColumnIndex("starttime"));
-        mAllDay=time%1000==1;
-        time = time-time%1000;
+        mAllDay = time % 1000 == 1;
+        time = time - time % 1000;
         mStart = new GregorianCalendar();
         mStart.setTimeInMillis(time);
         time = c.getLong(c.getColumnIndex("endtime"));
@@ -208,48 +212,80 @@ public class InEvent {
         return (new URL(INURL, url)).toString();
     }
 
-    InEvent(Element e) throws MalformedURLException, ParseException {
-        mIconUrl = getAttr(e.select("p.guide-photo img"), 0, "src");
-        Elements tmp = e.select("div.guide-entry p");
-        if (tmp != null && tmp.size() >= 2 && !tmp.get(1).hasClass("guide-name"))
-            mGroup = tmp.get(1).text();
-        tmp = e.select("h3.guide-name a");
-        mTitle = tmp != null && tmp.size() > 0 ? tmp.get(0).text() : "";
-        mEventUrl = getAbsoluteUrl(getAttr(tmp, 0, "href"));
-        Matcher mat = MACTPATTERN.matcher(mEventUrl);
-        if (mat.find()) {
-            mGroupId = mat.group(1);
-            mEventId = mat.group(2);
+    InEvent(Element e, boolean newformat) throws MalformedURLException, ParseException {
+        if (newformat) {
+            mIconUrl = getAttr(e.select("img.teaserRow__image"), 0, "src");
+            mTitle = getAttr(e.select("a.teaserRow__titleLink"), 0, "title");
+            mEventUrl = getAbsoluteUrl(getAttr(e.select("a.teaserRow__titleLink"), 0, "href"));
+            Matcher mat = MACTPATTERN.matcher(mEventUrl);
+            if (mat.find()) {
+                mGroupId = mat.group(1);
+                mEventId = mat.group(2);
+            } else {
+                mat = MEVENTPATTERN.matcher(mEventUrl);
+                if (mat.find()) mEventId = mat.group(1);
+            }
+            Elements tmp = e.select("a.t-calendar-entry-activity-group");
+            if (tmp != null && tmp.size() > 0) {
+                mGroup = tmp.get(0).text();
+            }
+            tmp = e.select("span.t-attending-activity-message");
+            mRsvp = tmp != null && tmp.size() > 0 ? SubscStatus.GOING : SubscStatus.NOTGOING;
+            mLocation = "";
+            tmp = e.select("span.teaserRow__date");
+            String startd = tmp.get(0).text();
+            tmp = e.select("span.teaserRow__time");
+            String startt = tmp.get(0).text();
+            mAllDay = startt.equals("");
+            mStart = new GregorianCalendar();
+            mStart.getTime().getTime();
+            mStart.setTime(mAllDay ? MYEVENTDF_NOTIME.parse(startd) : MYEVENTDF.parse(startd + " " + startt));
+            mMine = true;
         } else {
-            mat = MEVENTPATTERN.matcher(mEventUrl);
-            if (mat.find()) mEventId = mat.group(1);
-        }
-        mRsvp = (getAttr(e.select("span.already-guest img"), 0, "src").equals("")) ? SubscStatus.INVITED : SubscStatus.GOING;
-        tmp = e.select("td.col_city");
-        mLocation = tmp.text();
-        if (mLocation.length() > 4 && mLocation.substring(0, 3).equals("At "))
-            mLocation = mLocation.substring(3);
-        tmp = e.select("td.col_attend input#common_base_form__token");
-        String token = null;
-        if (tmp != null && tmp.size() > 0) token = tmp.get(0).attr("value");
-        if (token != null && token.length() > 0)
-            InApp.get().setInToken(token);
-        tmp = e.select("td.col_datetime p.date");
-        String startd = tmp.get(0).text();
-        String endd = tmp.size() > 1 ? tmp.get(1).text() : startd;
-        endd = endd.equals("") ? startd : null;
-        tmp = e.select("td.col_datetime p.time");
-        String startt = tmp.get(0).text();
-        String endt = tmp.size() > 1 ? tmp.get(1).text() : null;
-        if (endt != null && endd == null) endd = startd;
-        mAllDay = startt.equals("");        
-        mStart = new GregorianCalendar();
-        mStart.getTime().getTime();
-        mStart.setTime(mAllDay ? MYEVENTDF_NOTIME.parse(startd) : MYEVENTDF.parse(startd + " " + startt));
-        mMine = true;
-        if (endd != null) {
-            mStop = new GregorianCalendar();
-            mStop.setTime((endt == null || endt.equals("")) ? MYEVENTDF_NOTIME.parse(endd) : MYEVENTDF.parse(endd + " " + endt));
+            mIconUrl = getAttr(e.select("p.guide-photo img"), 0, "src");
+            Elements tmp = e.select("div.guide-entry p");
+            if (tmp != null && tmp.size() >= 2 && !tmp.get(1).hasClass("guide-name"))
+                mGroup = tmp.get(1).text();
+            tmp = e.select("h3.guide-name a");
+            mTitle = tmp != null && tmp.size() > 0 ? tmp.get(0).text() : "";
+            mEventUrl = getAbsoluteUrl(getAttr(tmp, 0, "href"));
+            Matcher mat = MACTPATTERN.matcher(mEventUrl);
+            if (mat.find()) {
+                mGroupId = mat.group(1);
+                mEventId = mat.group(2);
+            } else {
+                mat = MEVENTPATTERN.matcher(mEventUrl);
+                if (mat.find()) mEventId = mat.group(1);
+            }
+            mRsvp = (getAttr(e.select("span.already-guest img"), 0, "src").equals("")) ? SubscStatus.INVITED : SubscStatus.GOING;
+            tmp = e.select("td.col_city");
+            mLocation = tmp.text();
+            if (mLocation.length() > 4 && mLocation.substring(0, 3).equals("At "))
+                mLocation = mLocation.substring(3);
+            tmp = e.select("td.col_attend input#common_base_form__token");
+            String token = null;
+            if (tmp != null && tmp.size() > 0) token = tmp.get(0).attr("value");
+            if (token != null && token.length() > 0)
+                InApp.get().setInToken(token);
+            tmp = e.select("td.col_datetime p.date");
+            String startd = tmp.get(0).text();
+            String endd = tmp.size() > 1 ? tmp.get(1).text() : startd;
+            endd = endd.equals("") ? startd : null;
+            tmp = e.select("td.col_datetime p.time");
+            String startt = tmp.get(0).text();
+            String endt = tmp.size() > 1 ? tmp.get(1).text() : null;
+            if (endt != null && endd == null) endd = startd;
+            DateFormat df = new SimpleDateFormat("MMM dd,yyyy kk:mm", Locale.US);
+            //DateFormat df = new SimpleDateFormat("MMM dd,yyyy kk:mm");
+            DateFormat dfdo = new SimpleDateFormat("MMM dd,yyyy", Locale.US);
+            mStart = new GregorianCalendar();
+            mStart.getTime().getTime();
+            mStart.setTime(startt.equals("")?dfdo.parse(startd): df.parse(startd + " " + startt));
+            mMine = true;
+            if (endd != null) {
+                mStop = new GregorianCalendar();
+                mStop.setTime(endt!=null&&endt.equals("")?dfdo.parse(endd): df.parse(endd + " " + endt));
+            }
         }
     }
 
@@ -257,7 +293,7 @@ public class InEvent {
         SQLiteDatabase db = InApp.get().getDB().getWrdb();
         ContentValues values = new ContentValues();
         long time = mStart.getTimeInMillis();
-        time = time-time%1000+(mAllDay?1L:0L);
+        time = time - time % 1000 + (mAllDay ? 1L : 0L);
         values.put("groupdesc", mGroup);
         values.put("groupid", mGroupId);
         values.put("timelimit", mTimelimit);
@@ -285,20 +321,24 @@ public class InEvent {
         }
         return mSaved;
     }
-    private static Long getMinTime(){
+
+    private static Long getMinTime() {
         Calendar c = Calendar.getInstance();
-        if(c.get(Calendar.HOUR_OF_DAY) < 10)
-            c.add(Calendar.HOUR_OF_DAY,-10);//10 hours ago
-        else{
-            c.add(Calendar.DATE,-1);
-            c.set(Calendar.HOUR_OF_DAY,23);
-            c.set(Calendar.MINUTE,59);
-            c.set(Calendar.MINUTE,59);
-        }return (c).getTime().getTime();
+        if (c.get(Calendar.HOUR_OF_DAY) < 10)
+            c.add(Calendar.HOUR_OF_DAY, -10);//10 hours ago
+        else {
+            c.add(Calendar.DATE, -1);
+            c.set(Calendar.HOUR_OF_DAY, 23);
+            c.set(Calendar.MINUTE, 59);
+            c.set(Calendar.MINUTE, 59);
+        }
+        return (c).getTime().getTime();
     }
+
     static ArrayMap<String, InEvent> loadEvents() {
         SQLiteDatabase db = InApp.get().getDB().getWrdb();
-        ArrayMap<String, InEvent> events = new ArrayMap<String, InEvent>();
+        ArrayMap<String, InEvent> events;
+        events = new ArrayMap<>();
         Cursor c = db.query(false, "events", new String[]{"*"}, "starttime >= ?", new String[]{getMinTime().toString()}, null, null, null, null);
         while (c != null && c.moveToNext()) {
             InEvent event = new InEvent(c);
@@ -306,9 +346,10 @@ public class InEvent {
         }
         return events;
     }
+
     public static void clearold() {
         SQLiteDatabase db = InApp.get().getDB().getWrdb();
-        db.delete("events","starttime < ?",new String[]{getMinTime().toString()});
+        db.delete("events", "starttime < ?", new String[]{getMinTime().toString()});
     }
 
     public void set_attendance(boolean going) {
@@ -322,7 +363,8 @@ public class InEvent {
     public boolean beenInvited() {
         return mRsvp == SubscStatus.INVITED;
     }
-    public boolean addedrecently(){
-        return (new Date()).getTime()- mTimelimit <24*3600000;
+
+    public boolean addedrecently() {
+        return (new Date()).getTime() - mTimelimit < 24 * 3600000;
     }
 }

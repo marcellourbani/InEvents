@@ -27,12 +27,7 @@ import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
 import org.apache.http.params.CoreProtocolPNames;
 import org.apache.http.params.HttpParams;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -77,39 +72,6 @@ public class httpClient {
         return streamToString(posturl_stream(url, params));
     }
 
-    public String download(String url, List<NameValuePair> params, File file) throws IOException {
-        HttpPost httppost = new HttpPost(url);
-        httppost.setEntity(new UrlEncodedFormEntity(params));
-        HttpResponse response = httpClient.execute(httppost);
-        HttpEntity en = response.getEntity();
-
-        InputStream is;
-        String mt = null;
-        BufferedInputStream bis;
-        BufferedOutputStream bos = null;
-        if ((is = en.getContent()) != null) {
-            bis = new BufferedInputStream(is);
-            bos = new BufferedOutputStream(new FileOutputStream(file));
-            int i;
-            while ((i = bis.read()) != -1) {
-                bos.write(i);
-            }
-            mt = en.getContentType().getValue();
-        }
-        if (bos != null) bos.close();
-        return mt;
-    }
-
-    public byte[] streamToByte(InputStream is) throws IOException {
-        ByteArrayOutputStream bos = new ByteArrayOutputStream(1024);
-        BufferedInputStream bis = new BufferedInputStream(is);
-        int i;
-        while ((i = bis.read()) != -1) {
-            bos.write(i);
-        }
-        return bos.toByteArray();
-    }
-
     private String streamToString(InputStream is) throws IOException {
         BufferedReader r = new BufferedReader(new InputStreamReader(is));
         StringBuilder sb = new StringBuilder();
@@ -119,20 +81,6 @@ public class httpClient {
         }
         return sb.toString();
     }
-
-//    public String getCookies() {
-//        if (httpClient == null||httpClient.getCookieStore() == null) return "";
-//        else {
-//            String s=null;
-//            CookieStore store = httpClient.getCookieStore();
-//            for(Cookie cookie: store.getCookies()){
-//                String cs = cookie.getName()+"="+cookie.getValue();
-//                s = s==null?cs:s+"; "+cs;
-//            }
-//            return s;
-//           // return store.toString();
-//        }
-//    }
     public List<Cookie> getCookies() {
         return httpClient == null?null:httpClient.getCookieStore().getCookies();
     }

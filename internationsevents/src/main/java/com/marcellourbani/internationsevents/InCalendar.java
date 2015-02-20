@@ -121,7 +121,7 @@ public class InCalendar {
                 CALENDARS_WHERE, null, Calendars.DEFAULT_SORT_ORDER);
         try {
             if (c != null && c.getCount() > 0) {
-                calendars = new ArrayList<InCalendar>();
+                calendars = new ArrayList<>();
                 while (c.moveToNext()) {
                     calendars.add(new InCalendar(c));
                 }
@@ -162,8 +162,8 @@ public class InCalendar {
         }
     }
     public static ArrayList<String> syncEvents(ArrayMap<String, InEvent> events) {
-        ArrayList<String> removed = new ArrayList<String>();
-        ArrayList<EvCal> toremove = new ArrayList<EvCal>();
+        ArrayList<String> removed = new ArrayList<>();
+        ArrayList<EvCal> toremove = new ArrayList<>();
         if (events == null) return removed;
         ContentResolver contentResolver = InApp.get().getContentResolver();
         Cursor cursor = contentResolver.query(Events.CONTENT_URI, calendarColumns(),

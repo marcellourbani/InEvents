@@ -3,7 +3,7 @@ buildscript {
         mavenCentral()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:0.9.+'
+        classpath 'com.android.tools.build:gradle:1.0.0'
     }
 }
 apply plugin: 'android'
@@ -13,28 +13,30 @@ repositories {
 }
 
 android {
-    compileSdkVersion 19
-    buildToolsVersion '19.0.1'
-
+    compileSdkVersion 21
+    buildToolsVersion '21.1.2'
     defaultConfig {
         minSdkVersion 14
-        targetSdkVersion 14
+        targetSdkVersion 21
         versionCode 10
         versionName "1.18"
     }
     buildTypes {
         release {
             debuggable false
-            runProguard false
+            apply plugin: 'findbugs'
+            minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
-            jniDebugBuild false
+
         }
         debug {
             debuggable true
-            runProguard false
+            minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
-            jniDebugBuild false
+
         }
+    }
+    productFlavors {
     }
 }
 

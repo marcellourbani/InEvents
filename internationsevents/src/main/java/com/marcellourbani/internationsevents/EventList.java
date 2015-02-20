@@ -23,7 +23,6 @@ import android.content.IntentFilter;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.preference.PreferenceManager;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -56,7 +55,7 @@ public class EventList extends Activity {
         mFrag = (EventsFragment) getFragmentManager().findFragmentByTag(EVFRAG);
         if (savedInstanceState == null || mFrag == null) {
             mNotifiedEvent = getIntent().getStringExtra(InApp.NOTIFIEDEVENT);
-            mFrag = new EventsFragment(InApp.getbot());
+            mFrag = new EventsFragment();
             mFrag.setRetainInstance(true);
             getFragmentManager().beginTransaction()
                     .add(R.id.container, mFrag, EVFRAG)
@@ -179,11 +178,7 @@ public class EventList extends Activity {
         private NetWorker mNw;
         private EventAdapter mEventAdapter = null;
         public EventsFragment() {
-            mIbot = InApp.get().getbot();
-        }
-
-        public EventsFragment(InternationsBot bot) {
-            mIbot = bot;
+            mIbot = InApp.getbot();
         }
 
         @Override

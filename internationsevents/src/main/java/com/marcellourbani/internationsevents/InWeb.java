@@ -15,6 +15,7 @@
 
 package com.marcellourbani.internationsevents;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
@@ -22,6 +23,7 @@ import android.graphics.Point;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.view.Display;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -85,6 +87,7 @@ public class InWeb extends Activity {
         }
     }
 
+    @SuppressLint("SetJavaScriptEnabled")
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -133,15 +136,13 @@ public class InWeb extends Activity {
         val = val * 100d;
         return val.intValue();
     }
-
     @Override
-    protected void onSaveInstanceState( Bundle outState) {
+    protected void onSaveInstanceState( @NonNull Bundle  outState) {
         super.onSaveInstanceState(outState);
         if (web != null) web.saveState(outState);
     }
-
     @Override
-    protected void onRestoreInstanceState(Bundle savedInstanceState) {
+    protected void onRestoreInstanceState(@NonNull Bundle savedInstanceState) {
         super.onRestoreInstanceState(savedInstanceState);
         if (web != null) web.restoreState(savedInstanceState);
     }

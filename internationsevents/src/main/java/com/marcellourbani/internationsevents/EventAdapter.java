@@ -46,7 +46,7 @@ public class EventAdapter extends ArrayAdapter<InEvent> {
     }
 
     public static EventAdapter create(Context context, int resource, ArrayMap<String, InEvent> evmap) {
-        ArrayList<InEvent> eventlist = new ArrayList<InEvent>();
+        ArrayList<InEvent> eventlist = new ArrayList<>();
         return new EventAdapter(context,resource,eventlist).updateEvents(evmap);
     }
 

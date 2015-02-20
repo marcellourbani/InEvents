@@ -54,8 +54,8 @@ public class InternationsBot {
     private final SharedPreferences mPref;
     httpClient mClient;
     boolean mSigned = false;
-    ArrayMap<String, InEvent> mEvents = new ArrayMap<String, InEvent>();
-    ArrayMap<String, InGroup> mGroups = new ArrayMap<String, InGroup>();
+    ArrayMap<String, InEvent> mEvents = new ArrayMap<>();
+    ArrayMap<String, InGroup> mGroups = new ArrayMap<>();
 
     public enum Refreshkeys {
         GROUPS, EVENTS, MYEVENTS;
@@ -88,8 +88,8 @@ public class InternationsBot {
     }
 
     private class Grouppage {
-        ArrayMap<String, InGroup> mGroups = new ArrayMap<String, InGroup>();
-        ArrayList<String> mPages = new ArrayList<String>();
+        ArrayMap<String, InGroup> mGroups = new ArrayMap<>();
+        ArrayList<String> mPages = new ArrayList<>();
     }
 
     public boolean passIsSet() {
@@ -108,7 +108,7 @@ public class InternationsBot {
     public boolean rsvp(InEvent event, boolean going) {
         try {
             if (!sign()) return false;
-            ArrayList<NameValuePair> parms = new ArrayList<NameValuePair>();
+            ArrayList<NameValuePair> parms = new ArrayList<>();
             String url = event.getRsvpUrl(going);
             String result;
             if (event.isEvent()) {
@@ -272,15 +272,16 @@ public class InternationsBot {
 
     public void readMyEvents(boolean save) {
         try {
-            ArrayMap<String, InEvent> events = new ArrayMap<String, InEvent>();
+            ArrayMap<String, InEvent> events = new ArrayMap<>();
             String ev = mClient.geturl_string(MYEVENTSURL);
-            ev = extractTable(ev, "my_upcoming_events_table");
+            String evtab = extractTable(ev, "my_upcoming_events_table");
+            if(evtab!=null&&evtab.length()>0)ev = evtab;else evtab=null;
             if (ev != null) {
                 Document doc = Jsoup.parse(ev);
-                Elements elements = doc.select("#my_upcoming_events_table tbody tr");
+                Elements elements = evtab==null?doc.select("div.js-calendar-container div.t-calendar-entry"):doc.select("#my_upcoming_events_table tbody tr");
                 for (Element evel : elements) {
                     try {
-                        InEvent event = new InEvent(evel);
+                        InEvent event = new InEvent(evel,evtab==null);
                         addOrUpdateEvent(event);
                         events.put(event.mEventId, event);
                     } catch (MalformedURLException e) {
@@ -356,7 +357,7 @@ public class InternationsBot {
         if (!mSigned) {
             if (passIsSet())
                 try {
-                    List<NameValuePair> parms = new ArrayList<NameValuePair>();
+                    List<NameValuePair> parms = new ArrayList<>();
                     parms.add(new BasicNameValuePair("user_email", mUser));
                     parms.add(new BasicNameValuePair("user_password", mPass));
                     parms.add(new BasicNameValuePair("remember_me","1"));
@@ -374,7 +375,7 @@ public class InternationsBot {
     }
 
     public ArrayList<InEvent> getEvents() {
-        ArrayList<InEvent> events = new ArrayList<InEvent>();
+        ArrayList<InEvent> events = new ArrayList<>();
         events.addAll(mEvents.values());
         Collections.sort(events, new Comparator<InEvent>() {
             @Override

@@ -14,16 +14,15 @@
  */
 package com.marcellourbani.internationsevents;
 
-import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.util.Log;
+import android.support.v4.content.WakefulBroadcastReceiver;
 
 
-public class InReceiver extends BroadcastReceiver {
+public class InReceiver extends WakefulBroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         Intent i = new Intent(context,InService.class);
-        context.startService(i);
+        startWakefulService(context,i);
     }
 }

@@ -36,7 +36,7 @@ import java.util.Calendar;
 public class InService extends IntentService {
     public static final String RELOAD_EVENTS = "INEVENTS_RELOAD";
     final static DateFormat DATEFORMAT = new SimpleDateFormat("dd.MM.yy kk:mm"),
-                            ALLLDAYDF = new SimpleDateFormat("dd.MM.yy");
+            ALLLDAYDF = new SimpleDateFormat("dd.MM.yy");
     SharedPreferences prefs;
     private InternationsBot bot;
 
@@ -47,8 +47,11 @@ public class InService extends IntentService {
     @Override
     protected void onHandleIntent(Intent intent) {
         if (InApp.get().isConnected())
-            new refreshTask().execute();
-        else retry();
+            new refreshTask(intent).execute();
+        else {
+            InReceiver.completeWakefulIntent(intent);
+            retry();
+        }
     }
 
     private void retry() {
@@ -80,9 +83,13 @@ public class InService extends IntentService {
     }
 
     private class refreshTask extends AsyncTask<String, Integer, Boolean> {
+        private Intent mIntent;
+        public refreshTask(Intent i){
+            mIntent = i;
+        }
         @Override
         protected Boolean doInBackground(String... strings) {
-            if(prefs==null)prefs= PreferenceManager.getDefaultSharedPreferences(InApp.get());
+            if (prefs == null) prefs = PreferenceManager.getDefaultSharedPreferences(InApp.get());
             bot = new InternationsBot(prefs);
             bot.clearold();
             bot.loadEvents();
@@ -93,7 +100,7 @@ public class InService extends IntentService {
             }
             InError.get().clear();
             bot.readMyEvents(true);
-            if (InError.isOk())InCalendar.syncEvents(bot.mEvents);
+            if (InError.isOk()) InCalendar.syncEvents(bot.mEvents);
             if (InError.isOk() && bot.isExpired(InternationsBot.Refreshkeys.GROUPS)) {
                 bot.readMyGroups();
                 if (InError.isOk()) bot.saveGroups();
@@ -107,27 +114,28 @@ public class InService extends IntentService {
         protected void onPostExecute(Boolean aBoolean) {
             super.onPostExecute(aBoolean);
             sendNotifications();
+            InReceiver.completeWakefulIntent(mIntent);
             sendBroadcast(new Intent(RELOAD_EVENTS));
         }
     }
 
     private void sendNotifications() {
-        if(!prefs.getBoolean("pr_notify_new", true)) return;
+        if (!prefs.getBoolean("pr_notify_new", true)) return;
         NotificationManager mNotificationManager =
                 (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        for(InEvent e:bot.getEvents()){
-            if(e.mNew &&e.mEventId!=null){
-                String title = (e.isEvent()? "New Event":"New Activity")+e.mTitle;
-                String text = e.mAllDay?ALLLDAYDF.format(e.mStart.getTime()):DATEFORMAT.format(e.mStart.getTime());
-                if(e.mGroup!=null)text = "from:" +e.mGroup+"\n"+text;
-                if(e.mLocation!=null)text = text+" at " +e.mLocation;
+        for (InEvent e : bot.getEvents()) {
+            if (e.mNew && e.mEventId != null) {
+                String title = (e.isEvent() ? "New Event" : "New Activity") + e.mTitle;
+                String text = e.mAllDay ? ALLLDAYDF.format(e.mStart.getTime()) : DATEFORMAT.format(e.mStart.getTime());
+                if (e.mGroup != null) text = "from:" + e.mGroup + "\n" + text;
+                if (e.mLocation != null) text = text + " at " + e.mLocation;
                 NotificationCompat.Builder mBuilder =
                         new NotificationCompat.Builder(this)
                                 .setSmallIcon(R.drawable.ic_launcher)
                                 .setContentTitle(title)
                                 .setContentText(text)
                                 .setAutoCancel(true)
-                                .setDefaults(Notification.DEFAULT_LIGHTS|Notification.DEFAULT_VIBRATE);
+                                .setDefaults(Notification.DEFAULT_LIGHTS | Notification.DEFAULT_VIBRATE);
                 Intent resultIntent = new Intent(this, EventList.class);
                 resultIntent.setData(Uri.parse("content://" + e.mEventId));
                 resultIntent.putExtra(InApp.NOTIFIEDEVENT, e.mEventId);

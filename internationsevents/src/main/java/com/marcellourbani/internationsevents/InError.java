@@ -20,7 +20,7 @@ import java.util.ArrayList;
 
 public class InError {
     private static InError _instance = null;
-    private ArrayList<ErrorItem> errors = new ArrayList<ErrorItem>();
+    private ArrayList<ErrorItem> errors = new ArrayList<>();
     private ErrorItem maxErr=null;
 
     public static boolean isOk() {
@@ -32,8 +32,8 @@ public class InError {
         return false;
     }
 
-    public enum ErrType{NETWORK,PARSE,FORMPROC,DATABASE,LOGIN,UNKNOWN};
-    public enum ErrSeverity{NONE,INFO,WARNING,ERRROR};
+    public enum ErrType{NETWORK,PARSE,FORMPROC,DATABASE,LOGIN,UNKNOWN}
+    public enum ErrSeverity{NONE,INFO,WARNING,ERRROR}
 
     public class ErrorItem{
         String text;

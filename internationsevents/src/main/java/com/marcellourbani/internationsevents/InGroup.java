@@ -22,11 +22,7 @@ import android.support.v4.util.ArrayMap;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
-import java.util.Date;
 
-/**
- * Created by Marcello on 20/02/14.
- */
 public class InGroup {
     String mId,mDesc;
     int mMembers,mActivities;
@@ -42,7 +38,7 @@ public class InGroup {
         Elements tmp = e.select("TD.results-group.cf DIV.group-info a");
         mDesc        = tmp.get(0).text();
         String   url = tmp.get(0).attr("href");
-        String[] x   = url.split(".*/([0-9]+)");
+        String[] x;
         x   = url.split("/");
         mId = x[x.length-1];
         //mId          = tmp.get(0).attr("href").split("/([0-9]+)")[1];
@@ -72,7 +68,7 @@ public class InGroup {
     }
     static ArrayMap<String, InGroup> loadGroups(){
         SQLiteDatabase db = InApp.get().getDB().getWrdb();
-        ArrayMap<String, InGroup> groups = new ArrayMap<String, InGroup>();
+        ArrayMap<String, InGroup> groups = new ArrayMap<>();
         Cursor c = db.rawQuery("select * from groups;",null);
         while(c!=null&&c.moveToNext()){
             InGroup g = new InGroup(c);
