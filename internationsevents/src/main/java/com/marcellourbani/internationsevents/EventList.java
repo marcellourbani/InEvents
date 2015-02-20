@@ -57,6 +57,7 @@ public class EventList extends Activity {
             mNotifiedEvent = getIntent().getStringExtra(InApp.NOTIFIEDEVENT);
             mFrag = new EventsFragment();
             mFrag.setRetainInstance(true);
+            mFrag.loadevents(false, false);
             getFragmentManager().beginTransaction()
                     .add(R.id.container, mFrag, EVFRAG)
                     .commit();
