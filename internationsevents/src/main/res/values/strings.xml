@@ -8,5 +8,8 @@
     <string name="title_activity_main">MainActivity</string>
     <string name="hello_world">Hello world!</string>
     <string name="action_refresh">Refresh</string>
+    <string name="menu_home">Internations home</string>
+    <string name="menu_refreshmy">Refresh My events</string>
+    <string name="menu_refreshall">Refresh All</string>
 
 </resources>

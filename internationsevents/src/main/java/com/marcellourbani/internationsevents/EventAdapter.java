@@ -95,7 +95,8 @@ public class EventAdapter extends ArrayAdapter<InEvent> {
                 Picasso.with(eventList).load(event.mIconUrl).into(icon);
                 title.setText(event.mTitle);
                 location.setText(event.mLocation);
-                rsvp.setText(event.imGoing()?"Going":"RSVP");
+                rsvp.setText(event.getRsvpText());
+                rsvp.setEnabled(event.rsvpChangeable());
                 rsvp.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
@@ -120,6 +121,11 @@ public class EventAdapter extends ArrayAdapter<InEvent> {
                 if (event.mLocation != null && event.mLocation.length() > 0) {
                     locicon.setOnClickListener(startmap);
                     location.setOnClickListener(startmap);
+                    locicon.setVisibility(View.VISIBLE);
+                    location.setVisibility(View.VISIBLE);
+                }else{
+                    locicon.setVisibility(View.GONE);
+                    location.setVisibility(View.GONE);
                 }
             }
         }

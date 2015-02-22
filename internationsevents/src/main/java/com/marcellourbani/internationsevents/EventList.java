@@ -23,6 +23,8 @@ import android.content.IntentFilter;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
+import android.support.v7.app.ActionBarActivity;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -30,7 +32,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ListView;
 
-public class EventList extends Activity {
+public class EventList extends ActionBarActivity {
     private static EventsFragment mFrag;
     protected MenuItem refresh;
     private static final int SETPASSWORD = 2001;
@@ -189,7 +191,7 @@ public class EventList extends Activity {
         }
 
         @Override
-        public View onCreateView( LayoutInflater inflater, ViewGroup container,
+        public View onCreateView( @NonNull LayoutInflater inflater, ViewGroup container,
                                  Bundle savedInstanceState) {
             View rootView;
             rootView = inflater.inflate(R.layout.fragment_event_list, container, false);
@@ -280,7 +282,7 @@ public class EventList extends Activity {
                     if (InError.isOk()) mIbot.readMyGroups();
                     if (InError.isOk()) mIbot.saveGroups();
                     if (InError.isOk()) mIbot.readGroupsEvents();
-                    if (InError.isOk()) mIbot.saveEvents(all);
+                    if (InError.isOk()) mIbot.saveEvents(true);
                 } else {
                     if (InError.isOk() && mIbot.isExpired(InternationsBot.Refreshkeys.GROUPS)) {
                         mIbot.readMyGroups();

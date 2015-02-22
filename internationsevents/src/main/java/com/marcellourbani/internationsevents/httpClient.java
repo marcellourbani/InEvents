@@ -31,7 +31,9 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.StringWriter;
 import java.util.List;
+import java.util.Scanner;
 
 public class httpClient {
     DefaultHttpClient httpClient;
@@ -73,13 +75,8 @@ public class httpClient {
     }
 
     private String streamToString(InputStream is) throws IOException {
-        BufferedReader r = new BufferedReader(new InputStreamReader(is));
-        StringBuilder sb = new StringBuilder();
-        String line;
-        while ((line = r.readLine()) != null) {
-            sb.append(line);
-        }
-        return sb.toString();
+        Scanner s = new Scanner(is).useDelimiter("\\A");
+        return s.hasNext() ? s.next() : "";
     }
     public List<Cookie> getCookies() {
         return httpClient == null?null:httpClient.getCookieStore().getCookies();

@@ -286,22 +286,25 @@ public class InternationsBot {
     }
 
     public void readMyEvents(boolean save) {
-        final String DIVCLASS="js-calendar-my-events",NEXTDIVCLAS="t-recommended-events";
+        final String DIVCLASS = "js-calendar-my-events", NEXTDIVCLAS = "t-recommended-events";
         try {
             ArrayMap<String, InEvent> events = new ArrayMap<>();
             String ev = mClient.geturl_string(MYEVENTSURL);
             String evtab = extractTable(ev, "my_upcoming_events_table");
             if (evtab != null && evtab.length() > 0) ev = evtab;
             else evtab = null;
-            if(evtab==null)ev = extractDiv(ev,DIVCLASS,NEXTDIVCLAS);
+            if (evtab == null) ev = extractDiv(ev, DIVCLASS, NEXTDIVCLAS);
             if (ev != null) {
                 Document doc = Jsoup.parse(ev);
-                Elements elements = evtab == null ? doc.select("div."+DIVCLASS+" div.t-calendar-entry") : doc.select("#my_upcoming_events_table tbody tr");
+                Elements elements = evtab == null ? doc.select("div." + DIVCLASS + " div.t-calendar-entry") : doc.select("#my_upcoming_events_table tbody tr");
                 for (Element evel : elements) {
                     try {
                         InEvent event = new InEvent(evel, evtab == null);
-                        addOrUpdateEvent(event);
-                        events.put(event.mEventId, event);
+                        if (!event.isExpired()) {
+                            if (event.mMine) refineEvent(event);
+                            addOrUpdateEvent(event);
+                            events.put(event.mEventId, event);
+                        }
                     } catch (MalformedURLException e) {
                         InError.get().add(InError.ErrType.PARSE, "Error parsing my events URL" + e.getMessage());
                         Log.d(INTAG, e.getMessage());
@@ -332,6 +335,12 @@ public class InternationsBot {
         }
     }
 
+    private void refineEvent(InEvent event) throws Exception {
+        String ev = event.getRefineUrl();
+        ev = mClient.geturl_string(ev);
+        event.refine(ev);
+    }
+
     private void addOrUpdateEvent(InEvent event) {
         addOrUpdateEvent(event, false);
     }
@@ -340,7 +349,7 @@ public class InternationsBot {
         InEvent old = mEvents.get(event.mEventId);
         if (old == null) {
             if (!fromdb) {
-                event.mNew = true;
+                event.setNew(true);
                 event.mTimelimit = new Date().getTime();
             }
             mEvents.put(event.mEventId, event);

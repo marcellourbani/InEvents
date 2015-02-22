@@ -20,6 +20,8 @@ import android.database.sqlite.SQLiteDatabase;
 import android.support.v4.util.ArrayMap;
 import android.util.Log;
 
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
@@ -40,6 +42,7 @@ public class InEvent {
     private static final Pattern MEVENTPATTERN = Pattern.compile("/events?/.*[^0-9]([0-9]+)$");
     private static final DateFormat MYEVENTDF = new SimpleDateFormat("dd MMM kk:mm", Locale.US);
     private static final DateFormat MYEVENTDF_NOTIME = new SimpleDateFormat("MMM dd", Locale.US);
+    private static final DateFormat DETAILDF = new SimpleDateFormat("MMM dd,yyyy,KK:mm aa", Locale.US);
     private static final DateFormat GROPUEVENTDF = new SimpleDateFormat("dd MMMM yyyy", Locale.US);
     String mGroupId = null;
     String mEventId;
@@ -48,8 +51,18 @@ public class InEvent {
     private SubscStatus mRsvp = SubscStatus.NOTGOING;
     boolean mMine, mSaved, mAllDay;
     GregorianCalendar mStart, mStop;
-    public boolean mNew;
+    private boolean mNew;
     long mTimelimit = 0L;
+
+    public boolean isNew() {
+        return mNew;
+    }
+
+    public void setNew(boolean newEvent) {
+        if ((!newEvent) || (mRsvp != SubscStatus.WENT) && mStart.getTime().getTime() < new Date().getTime())
+            this.mNew = newEvent;
+    }
+
 
     public static String idFromurl(String url) {
         if (url == null) return null;
@@ -82,8 +95,10 @@ public class InEvent {
             mAllDay = event.mAllDay;
             mNew = event.mNew;
             mTimelimit = event.mTimelimit;
-        } else if (!mEventId.equals(event.mEventId)) return false;
-        if (mSaved && equals(event)) return true;
+        } else if (!mEventId.equals(event.mEventId))
+            return false;
+        if (mSaved && equals(event))
+            return true;
         mGroupId = event.mGroupId;
         mIconUrl = event.mIconUrl;
         mTitle = event.mTitle;
@@ -101,17 +116,91 @@ public class InEvent {
         return true;
     }
 
+    public void refine(String event) throws ParseException {
+        if (!isEvent()) {
+            Document doc = Jsoup.parse(event);
+            String name = "", name2 = "", value = "";
+            Elements e = doc.select("div#activity-card div.details").get(0).children();
+            for (int i = 0; i < e.size(); i++) {
+                Element element = e.get(i);
+                name2 = element.text();
+                if (element.tag().toString().equals("h3"))
+                    name = element.text();
+                else if (element.tag().toString().equals("p")) {
+                    value = element.text();
+                    if (name.equals("Starts:"))
+                        mStart.setTime(DETAILDF.parse(value));
+                    else if (name.equals("Ends:")) {
+                        mStop = new GregorianCalendar();
+                        mStop.setTime(DETAILDF.parse(value));
+                    } else if (name.equals("Location:"))
+                        mLocation = value;
+                }
+            }
+        }else{
+            String[] lines = event.split("\n");
+            boolean active=false;
+            for(int i=0;i<lines.length;i++){
+                if (lines[i].equals("BEGIN:VEVENT")){
+                    active = true;
+                    continue;
+                }
+                if(!active) continue;
+                if(lines[i].equals("END:VEVENT"))break;
+                String[] kv = lines[i].split(":", 2);
+                String s = "\\\\([^\\\\])";
+                String t = "$1";
+                if(kv[0].equals("LOCATION"))
+                    mLocation=kv[1].replaceAll(s,t);
+                if(kv[0].indexOf("DTSTART")==0)mStart=tsToCal(kv[1]);
+                if(kv[0].indexOf("DTEND")==0)mStop=tsToCal(kv[1]);
+            }
+        }
+    }
+
+    private GregorianCalendar tsToCal(String ts) {
+        GregorianCalendar cal=new GregorianCalendar();
+        int year = Integer.parseInt(ts.substring(0, 4));
+        int month = Integer.parseInt(ts.substring(4, 6));
+        int day = Integer.parseInt(ts.substring(6, 8));
+        int hour = Integer.parseInt(ts.substring(9, 11));
+        int minute = Integer.parseInt(ts.substring(11, 13));
+        cal.set(year,month,day,hour,minute,0);
+        return cal;
+    }
+
+    public boolean isExpired() {
+        long offset = 3600000 * (mAllDay ? 36 : 24);
+        long limit = new Date().getTime() - 36 * 3600000;//36 hours ago;
+        return mStart.getTime().getTime() < new Date().getTime() - offset;
+    }
+
+    public String getRefineUrl() {
+        if (isEvent()) {
+            int idx = mEventUrl.indexOf("details");
+            String s = mEventUrl.substring(0,idx)+"ical/"+mEventId;
+            return s;
+        } else
+            return mEventUrl;
+    }
+
     private enum SubscStatus {
-        INVITED, GOING, NOTGOING;
+        INVITED, GOING, NOTGOING, CLOSED, FULL, WENT;
 
         public int toInt() {
             switch (this) {
+                case NOTGOING:
+                    return 10;
                 case GOING:
                     return 11;
                 case INVITED:
                     return 12;
-                case NOTGOING:
-                    return 10;
+                case CLOSED:
+                    return 13;
+                case FULL:
+                    return 14;
+                case WENT:
+                    return 15;
                 default:
                     return 10;
             }
@@ -121,6 +210,8 @@ public class InEvent {
             switch (i) {
                 case 0:
                     return mine ? INVITED : NOTGOING;//old values in DB
+                case 10:
+                    return NOTGOING;
                 case 1:
                 case 11:
                     return GOING;
@@ -128,7 +219,47 @@ public class InEvent {
                     return INVITED;
                 default:
                     return NOTGOING;
+                case 13:
+                    return CLOSED;
+                case 14:
+                    return FULL;
+                case 15:
+                    return WENT;
             }
+        }
+
+        public static SubscStatus decodeCalendarElement(Element element, InEvent event) {
+            //do we have an attending section?
+            Elements tmp = event.isEvent() ? element.select("span.t-attending-event-message") : element.select("span.t-attending-activity-message");
+            if (tmp != null && tmp.size() > 0) {
+                //we do. Do we have an accept button?
+                Elements t2 = event.isEvent() ? tmp.get(0).select("button.t-accept-activity-button") : tmp.get(0).select("button.t-accept-event-button");
+                if (t2 != null && t2.size() > 0) return INVITED;//Yes -> we was invited
+                else {
+                    //no->either we confirmed, went already OR full/closed
+                    t2 = tmp.get(0).select("button.t-attend-event-button");
+                    if (t2 != null && t2.size() > 0)
+                        return NOTGOING;//IN event, RSVP open, not going or went
+                    else {
+                        //get the internal span
+                        t2 = tmp.get(0).select(event.isEvent() ? "span.t-attending-event-message" : "span.t-attending-activity-message");
+                        if (t2 != null && t2.size() > 0) {
+                            String s = t2.get(0).toString();
+                            if (s.indexOf("attended") > 0) return WENT;
+                            if (s.indexOf("attending") > 0) return GOING;
+                        }
+                        t2 = tmp.get(0).select("span.t-guestlist-closed");
+                        if (t2 != null && t2.size() > 0) return CLOSED;
+                        t2 = tmp.get(0).select("span.t-guestlist-limit-reached");
+                        if (t2 != null && t2.size() > 0) return FULL;
+                    }
+                }
+            }
+            return NOTGOING;//should never get here....
+        }
+
+        public boolean canBeChanged() {
+            return this == GOING || this == NOTGOING || this == INVITED;
         }
     }
 
@@ -229,8 +360,7 @@ public class InEvent {
             if (tmp != null && tmp.size() > 0) {
                 mGroup = tmp.get(0).text();
             }
-            tmp = isEvent()?e.select("span.t-attending-event-message"): e.select("span.t-attending-activity-message");
-            mRsvp = tmp != null && tmp.size() > 0 ? SubscStatus.GOING : SubscStatus.NOTGOING;
+            mRsvp = SubscStatus.decodeCalendarElement(e, this);
             mLocation = "";
             tmp = e.select("span.teaserRow__date");
             String startd = tmp.get(0).text();
@@ -240,6 +370,8 @@ public class InEvent {
             mStart = new GregorianCalendar();
             mStart.getTime().getTime();
             mStart.setTime(mAllDay ? MYEVENTDF_NOTIME.parse(startd) : MYEVENTDF.parse(startd + " " + startt));
+            if (mStart.get(GregorianCalendar.YEAR) == 1970)
+                mStart.set(GregorianCalendar.YEAR, new GregorianCalendar().get(GregorianCalendar.YEAR));
             mMine = true;
         } else {
             mIconUrl = getAttr(e.select("p.guide-photo img"), 0, "src");
@@ -280,11 +412,11 @@ public class InEvent {
             DateFormat dfdo = new SimpleDateFormat("MMM dd,yyyy", Locale.US);
             mStart = new GregorianCalendar();
             mStart.getTime().getTime();
-            mStart.setTime(startt.equals("")?dfdo.parse(startd): df.parse(startd + " " + startt));
+            mStart.setTime(startt.equals("") ? dfdo.parse(startd) : df.parse(startd + " " + startt));
             mMine = true;
             if (endd != null) {
                 mStop = new GregorianCalendar();
-                mStop.setTime(endt!=null&&endt.equals("")?dfdo.parse(endd): df.parse(endd + " " + endt));
+                mStop.setTime(endt != null && endt.equals("") ? dfdo.parse(endd) : df.parse(endd + " " + endt));
             }
         }
     }
@@ -358,6 +490,27 @@ public class InEvent {
 
     public boolean imGoing() {
         return mRsvp == SubscStatus.GOING;
+    }
+
+    public String getRsvpText() {
+        switch (mRsvp) {
+            case GOING:
+                return "Going";
+            case CLOSED:
+                return "Closed";
+            case FULL:
+                return "Full";
+            case WENT:
+                return "Went";
+            case INVITED:
+            case NOTGOING:
+            default:
+                return "RSVP";
+        }
+    }
+
+    public boolean rsvpChangeable() {
+        return mRsvp.canBeChanged();
     }
 
     public boolean beenInvited() {
