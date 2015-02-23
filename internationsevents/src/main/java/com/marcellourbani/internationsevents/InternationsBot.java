@@ -121,7 +121,7 @@ public class InternationsBot {
                 String token = InApp.get().getInToken();
                 if (token == null || token.length() == 0) {
                     String evText = mClient.geturl_string(event.mEventUrl);
-                    Matcher mat = Pattern.compile("common_base_form__token[^>]*value=\"([^\"]*)").matcher(evText);
+                    Matcher mat = Pattern.compile("(?s)common_base_form__token[^>]*value=\"([^\"]*)").matcher(evText);
                     if (mat.find()) token = mat.group(1);
                 }
                 String method;
@@ -177,7 +177,7 @@ public class InternationsBot {
                 page.mGroups.put(group.mId, group);
             }
             if (getPageList) {
-                Matcher mat = Pattern.compile("(<span[^>]*pages.*/span>).*Next page link").matcher(text);
+                Matcher mat = Pattern.compile("(?s)(<span[^>]*pages.*/span>).*Next page link").matcher(text);
                 if (mat.find()) {
                     doc = Jsoup.parse(mat.group(1));
                     elements = doc.select("SPAN.pages a");
@@ -263,7 +263,7 @@ public class InternationsBot {
     }
 
     private String extractTable(String source, String id) {
-        Matcher m = Pattern.compile("(<table[^>]*" + id + ".*/table>)").matcher(source);
+        Matcher m = Pattern.compile("(<table[^>]*" + id + ".*/table>)",Pattern.DOTALL).matcher(source);
         if (m.find()) {
             String s = m.group(1);
             return s.substring(0, s.indexOf("/table>") + 7);
@@ -272,8 +272,8 @@ public class InternationsBot {
 
     private String extractDiv(String source, String clas, String nextclass) {
         int start, end = 0;
-        Matcher startm = Pattern.compile("<div[^>]*class=[^>=]*" + clas).matcher(source);
-        Matcher endm = Pattern.compile("<div[^>]*class=[^>=]*" + nextclass).matcher(source);
+        Matcher startm = Pattern.compile("(?s)<div[^>]*class=[^>=]*" + clas).matcher(source);
+        Matcher endm = Pattern.compile("(?s)<div[^>]*class=[^>=]*" + nextclass).matcher(source);
         if (startm.find()) {
             start = startm.start();
         } else return null;
@@ -285,7 +285,7 @@ public class InternationsBot {
         else return source.substring(start);
     }
 
-    public void readMyEvents(boolean save) {
+    public void readMyEvents(boolean save,boolean minRefine) {
         final String DIVCLASS = "js-calendar-my-events", NEXTDIVCLAS = "t-recommended-events";
         try {
             ArrayMap<String, InEvent> events = new ArrayMap<>();
@@ -301,7 +301,7 @@ public class InternationsBot {
                     try {
                         InEvent event = new InEvent(evel, evtab == null);
                         if (!event.isExpired()) {
-                            if (event.mMine) refineEvent(event);
+                            if (event.mMine&&((event.mLocation!=null&&event.mLocation.length()>0)||!minRefine))refineEvent(event);
                             addOrUpdateEvent(event);
                             events.put(event.mEventId, event);
                         }
@@ -364,7 +364,7 @@ public class InternationsBot {
                 group = grp;
                 String url = BASEURL + "/activity-group/" + group.mId + "/activity/";
                 String activities = mClient.geturl_string(url);
-                Matcher m = Pattern.compile("(<ul[^>]*upcoming.*/ul>).*/.upcoming").matcher(activities);
+                Matcher m = Pattern.compile("(?s)(<ul[^>]*upcoming.*/ul>).*/.upcoming").matcher(activities);
                 if (m.find()) {
                     Document doc = Jsoup.parse(m.group(1));
                     Elements elements = doc.select("li.activity");

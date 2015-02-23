@@ -148,10 +148,8 @@ public class InEvent {
                 if(!active) continue;
                 if(lines[i].equals("END:VEVENT"))break;
                 String[] kv = lines[i].split(":", 2);
-                String s = "\\\\([^\\\\])";
-                String t = "$1";
                 if(kv[0].equals("LOCATION"))
-                    mLocation=kv[1].replaceAll(s,t);
+                    mLocation=kv[1].replaceAll("\\\\([^\\\\])","$1");
                 if(kv[0].indexOf("DTSTART")==0)mStart=tsToCal(kv[1]);
                 if(kv[0].indexOf("DTEND")==0)mStop=tsToCal(kv[1]);
             }
@@ -161,7 +159,7 @@ public class InEvent {
     private GregorianCalendar tsToCal(String ts) {
         GregorianCalendar cal=new GregorianCalendar();
         int year = Integer.parseInt(ts.substring(0, 4));
-        int month = Integer.parseInt(ts.substring(4, 6));
+        int month = Integer.parseInt(ts.substring(4, 6))-1;
         int day = Integer.parseInt(ts.substring(6, 8));
         int hour = Integer.parseInt(ts.substring(9, 11));
         int minute = Integer.parseInt(ts.substring(11, 13));

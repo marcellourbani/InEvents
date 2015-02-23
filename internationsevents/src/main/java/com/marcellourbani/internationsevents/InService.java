@@ -99,7 +99,7 @@ public class InService extends IntentService {
                 return false;
             }
             InError.get().clear();
-            bot.readMyEvents(true);
+            bot.readMyEvents(true,false);
             if (InError.isOk()) InCalendar.syncEvents(bot.mEvents);
             if (InError.isOk() && bot.isExpired(InternationsBot.Refreshkeys.GROUPS)) {
                 bot.readMyGroups();

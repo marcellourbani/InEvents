@@ -276,7 +276,7 @@ public class EventList extends ActionBarActivity {
             }
 
             void refresh(boolean all) {
-                mIbot.readMyEvents(true);//will save everything later
+                mIbot.readMyEvents(true,false);//will save everything later
                 publishProgress();
                 if (all) {
                     if (InError.isOk()) mIbot.readMyGroups();
@@ -320,7 +320,7 @@ public class EventList extends ActionBarActivity {
                                 boolean newRSVP = ops[0] == Operations.RSVPYES;
                                 mIbot.rsvp(mEvent, newRSVP);
                                 if (InError.isOk()) {
-                                    mIbot.readMyEvents(true);
+                                    mIbot.readMyEvents(true,true);
                                     InEvent subev = mIbot.mEvents.get(mEvent.mEventId);
                                     if (subev == null || subev.imGoing() != newRSVP)
                                         InError.get().add(InError.ErrSeverity.INFO,

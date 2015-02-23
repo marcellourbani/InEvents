@@ -65,13 +65,12 @@ public class EventAdapter extends ArrayAdapter<InEvent> {
 
     private class Controls{
         Button rsvp;
-        ImageView icon,locicon,newicon;
+        ImageView icon,newicon;
         InEvent event;
         TextView title,location,startdt,starttm,group;
         Controls(View view,InEvent event){
             title = (TextView) view.findViewById(R.id.eititle);
             location = (TextView) view.findViewById(R.id.eilocation);
-            locicon = (ImageView) view.findViewById(R.id.eilocationic);
             rsvp = (Button) view.findViewById(R.id.eirsvp);
             startdt = (TextView) view.findViewById(R.id.eidate);
             starttm = (TextView) view.findViewById(R.id.eitime);
@@ -86,12 +85,15 @@ public class EventAdapter extends ArrayAdapter<InEvent> {
                 rsvp.setOnClickListener(null);
                 title.setOnClickListener(null);
                 icon.setOnClickListener(null);
-                locicon.setOnClickListener(null);
                 location.setOnClickListener(null);
             }else{
                 startdt.setText(event.mStart != null ? DF.format(event.mStart.getTime()) : "");
                 starttm.setText(event.mStart != null && event.mMine ? TF.format(event.mStart.getTime()) : "");
-                group.setText(event.mGroup);
+                if(event.isEvent())group.setVisibility(View.GONE);
+                else {
+                    group.setText(event.mGroup);
+                    group.setVisibility(View.VISIBLE);
+                }
                 Picasso.with(eventList).load(event.mIconUrl).into(icon);
                 title.setText(event.mTitle);
                 location.setText(event.mLocation);
@@ -119,12 +121,9 @@ public class EventAdapter extends ArrayAdapter<InEvent> {
                 };
                 newicon.setVisibility(event.addedrecently()?View.VISIBLE:View.INVISIBLE);
                 if (event.mLocation != null && event.mLocation.length() > 0) {
-                    locicon.setOnClickListener(startmap);
                     location.setOnClickListener(startmap);
-                    locicon.setVisibility(View.VISIBLE);
                     location.setVisibility(View.VISIBLE);
                 }else{
-                    locicon.setVisibility(View.GONE);
                     location.setVisibility(View.GONE);
                 }
             }

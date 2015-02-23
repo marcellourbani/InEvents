@@ -2,7 +2,21 @@
 
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:orientation="vertical" android:layout_width="match_parent"
-    android:layout_height="match_parent">
+    android:layout_height="wrap_content">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:text="Group"
+        android:id="@+id/eigroup"
+        android:layout_alignParentTop="true"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentStart="true"
+        android:layout_toLeftOf="@+id/eidate"
+        android:layout_toStartOf="@+id/eidate"
+        android:textSize="10sp" />
+
     <TextView android:id="@+id/eititle"
         android:textSize="16sp"
         android:textStyle="bold"
@@ -10,8 +24,9 @@
         android:layout_height="wrap_content"
         android:text="Title"
         android:layout_alignParentLeft="true"
-        android:layout_alignParentTop="true"
-        android:layout_toLeftOf="@+id/eidate" />
+        android:layout_alignParentTop="false"
+        android:layout_toLeftOf="@+id/eidate"
+        android:layout_below="@+id/eigroup" />
     <ImageView
         android:layout_width="50dip"
         android:layout_height="50dip"
@@ -28,26 +43,6 @@
         android:layout_alignParentLeft="true"
         android:visibility="invisible"
         android:src="@drawable/newribbon" />
-    <ImageView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:id="@+id/eilocationic"
-        android:src="@drawable/ic_menu_directions"
-        android:layout_below="@+id/eigroup"
-        android:layout_marginTop="10dp"
-        android:layout_alignRight="@+id/eitime" />
-
-    <TextView android:id="@+id/eilocation"
-        android:textSize="16sp"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Location"
-        android:gravity="center_vertical"
-        android:layout_alignBottom="@+id/eilocationic"
-        android:layout_alignParentLeft="true"
-        android:layout_marginTop="10dp"
-        android:layout_toLeftOf="@+id/eilocationic"
-        android:layout_below="@+id/eigroup" />
 
     <TextView
         android:layout_width="wrap_content"
@@ -69,16 +64,6 @@
         android:fontFamily="monospace"
         android:layout_below="@+id/eidate"
         android:layout_alignParentRight="true" />
-    <TextView
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textAppearance="?android:attr/textAppearanceSmall"
-        android:text="Group"
-        android:id="@+id/eigroup"
-        android:layout_below="@+id/eiicon"
-        android:layout_marginTop="10dp"
-        android:layout_alignParentLeft="true"
-        android:layout_alignRight="@+id/eitime" />
 
     <Button
         style="?android:attr/buttonStyleSmall"
@@ -89,6 +74,18 @@
         android:layout_marginTop="10dp"
         android:layout_below="@+id/eitime"
         android:layout_alignParentRight="true" />
+    <TextView android:id="@+id/eilocation"
+        android:textSize="12sp"
+        android:layout_width="fill_parent"
+        android:layout_height="wrap_content"
+        android:text="Location"
+        android:gravity="center_vertical"
+        android:layout_alignParentLeft="true"
+        android:layout_marginTop="10dp"
+        android:textAppearance="?android:attr/textAppearanceSmall"
+        android:textStyle="bold"
+        android:layout_below="@+id/eiicon"
+        android:drawableRight="@drawable/ic_menu_directions" />
 
 
 </RelativeLayout>
