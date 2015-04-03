@@ -169,6 +169,7 @@ public class InCalendar {
         Cursor cursor = contentResolver.query(Events.CONTENT_URI, calendarColumns(),
                 getUrlcondition(false),
                 new String[]{hasurl()? InternationsBot.BASEURL+"%":"%"+InternationsBot.BASEURL+"%"}, null);
+        if(cursor==null)return removed;
         while (cursor.moveToNext()) {
             String eventId;
             if(hasurl()){

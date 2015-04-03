@@ -11,5 +11,6 @@
     <string name="menu_home">Internations home</string>
     <string name="menu_refreshmy">Refresh My events</string>
     <string name="menu_refreshall">Refresh All</string>
+    <string name="hello_blank_fragment">Hello blank fragment</string>
 
 </resources>

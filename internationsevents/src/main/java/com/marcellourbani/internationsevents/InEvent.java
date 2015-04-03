@@ -43,6 +43,7 @@ public class InEvent {
     private static final DateFormat MYEVENTDF = new SimpleDateFormat("dd MMM kk:mm", Locale.US);
     private static final DateFormat MYEVENTDF_NOTIME = new SimpleDateFormat("MMM dd", Locale.US);
     private static final DateFormat DETAILDF = new SimpleDateFormat("MMM dd,yyyy,KK:mm aa", Locale.US);
+    private static final DateFormat DETAILDFNEW = new SimpleDateFormat("dd MMM yyyy HH:mm", Locale.US);
     private static final DateFormat GROPUEVENTDF = new SimpleDateFormat("dd MMMM yyyy", Locale.US);
     String mGroupId = null;
     String mEventId;
@@ -116,6 +117,12 @@ public class InEvent {
         return true;
     }
 
+    @Override
+    public String toString() {
+        String text = mGroup==null||mGroup.length()==0?"Event":mGroup;
+        return text+"/"+mTitle+"/"+MYEVENTDF.format(mStart.getTime());
+    }
+
     public void refine(String event) throws ParseException {
         if (!isEvent()) {
             Document doc = Jsoup.parse(event);
@@ -128,11 +135,10 @@ public class InEvent {
                     name = element.text();
                 else if (element.tag().toString().equals("p")) {
                     value = element.text();
-                    if (name.equals("Starts:"))
-                        mStart.setTime(DETAILDF.parse(value));
+                    if (name.equals("Starts:")) setEventTimeDetail(mStart,value);
                     else if (name.equals("Ends:")) {
                         mStop = new GregorianCalendar();
-                        mStop.setTime(DETAILDF.parse(value));
+                        setEventTimeDetail(mStop, value);
                     } else if (name.equals("Location:"))
                         mLocation = value;
                 }
@@ -152,6 +158,17 @@ public class InEvent {
                     mLocation=kv[1].replaceAll("\\\\([^\\\\])","$1");
                 if(kv[0].indexOf("DTSTART")==0)mStart=tsToCal(kv[1]);
                 if(kv[0].indexOf("DTEND")==0)mStop=tsToCal(kv[1]);
+            }
+        }
+    }
+
+    private void setEventTimeDetail(GregorianCalendar cal, String datetext) {
+        try {
+            cal.setTime(DETAILDFNEW.parse(datetext));
+        } catch (ParseException e) {
+            try {
+                cal.setTime(DETAILDF.parse(datetext));
+            } catch (ParseException e1) {
             }
         }
     }

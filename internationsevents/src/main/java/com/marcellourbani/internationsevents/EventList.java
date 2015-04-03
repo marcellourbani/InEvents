@@ -15,7 +15,7 @@
 package com.marcellourbani.internationsevents;
 
 import android.app.Activity;
-import android.app.ListFragment;
+import android.support.v4.app.ListFragment;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -38,7 +38,7 @@ public class EventList extends ActionBarActivity {
     private static final int SETPASSWORD = 2001;
     private DataUpdateReceiver dataUpdateReceiver;
     String mNotifiedEvent;
-    Intent mLastIntent=null;
+    Intent mLastIntent = null;
 
     protected enum Operations {LOAD, RSVPYES, RSVPNO, REFRESH, REFRESHALL}
 
@@ -54,13 +54,13 @@ public class EventList extends ActionBarActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_event_list);
         final String EVFRAG = "EVFRAG";
-        mFrag = (EventsFragment) getFragmentManager().findFragmentByTag(EVFRAG);
+        mFrag = (EventsFragment) getSupportFragmentManager().findFragmentByTag(EVFRAG);
         if (savedInstanceState == null || mFrag == null) {
             mNotifiedEvent = getIntent().getStringExtra(InApp.NOTIFIEDEVENT);
             mFrag = new EventsFragment();
             mFrag.setRetainInstance(true);
             mFrag.loadevents(false, false);
-            getFragmentManager().beginTransaction()
+            getSupportFragmentManager().beginTransaction()
                     .add(R.id.container, mFrag, EVFRAG)
                     .commit();
             InService.schedule(false);
@@ -72,8 +72,8 @@ public class EventList extends ActionBarActivity {
         super.onResume();
         if (dataUpdateReceiver == null) dataUpdateReceiver = new DataUpdateReceiver();
         IntentFilter intentFilter = new IntentFilter(InService.RELOAD_EVENTS);
-        if(mLastIntent!=null){
-            mNotifiedEvent=mLastIntent.getStringExtra(InApp.NOTIFIEDEVENT);
+        if (mLastIntent != null) {
+            mNotifiedEvent = mLastIntent.getStringExtra(InApp.NOTIFIEDEVENT);
             mFrag.scrollToNotified();
         }
         registerReceiver(dataUpdateReceiver, intentFilter);
@@ -180,6 +180,7 @@ public class EventList extends ActionBarActivity {
         protected static InternationsBot mIbot;
         private NetWorker mNw;
         private EventAdapter mEventAdapter = null;
+
         public EventsFragment() {
             mIbot = InApp.getbot();
         }
@@ -191,7 +192,7 @@ public class EventList extends ActionBarActivity {
         }
 
         @Override
-        public View onCreateView( @NonNull LayoutInflater inflater, ViewGroup container,
+        public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
                                  Bundle savedInstanceState) {
             View rootView;
             rootView = inflater.inflate(R.layout.fragment_event_list, container, false);
@@ -209,24 +210,26 @@ public class EventList extends ActionBarActivity {
                     mNw.execute(Operations.REFRESH);
             } else mNw.execute(Operations.LOAD);
         }
-         void scrollToNotified(){
+
+        void scrollToNotified() {
             EventList el = ((EventList) getActivity());
-            if(el!=null&&el.mNotifiedEvent!=null&&mEventAdapter!=null &&mIbot!=null){
+            if (el != null && el.mNotifiedEvent != null && mEventAdapter != null && mIbot != null) {
                 InEvent ev = mIbot.mEvents.get(el.mNotifiedEvent);
-                if(ev!=null){
-                    int pos=mEventAdapter.getPosition(ev);
-                    if(pos>=0){
+                if (ev != null) {
+                    int pos = mEventAdapter.getPosition(ev);
+                    if (pos >= 0) {
                         EventsFragment.this.getListView().smoothScrollToPosition(pos);
                         getListView().setChoiceMode(ListView.CHOICE_MODE_SINGLE);
                         EventsFragment.this.getListView().setSelection(pos);
                     }
                 }
-                el.mNotifiedEvent=null;
+                el.mNotifiedEvent = null;
             }
         }
+
         public void rsvp(InEvent event, boolean going) {
             EventList el = (EventList) getActivity();
-            if(el!=null)el.setProgressIndicator(true);
+            if (el != null) el.setProgressIndicator(true);
             mNw = new NetWorker();
             mNw.mEvent = event;
             mNw.execute(going ? Operations.RSVPYES : Operations.RSVPNO);
@@ -269,14 +272,17 @@ public class EventList extends ActionBarActivity {
             @Override
             protected void onProgressUpdate(Integer... values) {
                 super.onProgressUpdate(values);
-                if (mEventAdapter!=null &&EventsFragment.this.getListView()!=null){
-                    mEventAdapter.updateEvents(mIbot.mEvents);
-                    EventsFragment.this.getListView().invalidateViews();
+                try {
+                    if (mEventAdapter != null && EventsFragment.this.getListView() != null) {
+                        mEventAdapter.updateEvents(mIbot.mEvents);
+                        EventsFragment.this.getListView().invalidateViews();
+                    }
+                } catch (Exception e) {
                 }
             }
 
             void refresh(boolean all) {
-                mIbot.readMyEvents(true,false);//will save everything later
+                mIbot.readMyEvents(true, all ? InternationsBot.ALLEVENTS : "");//will save everything later
                 publishProgress();
                 if (all) {
                     if (InError.isOk()) mIbot.readMyGroups();
@@ -320,7 +326,7 @@ public class EventList extends ActionBarActivity {
                                 boolean newRSVP = ops[0] == Operations.RSVPYES;
                                 mIbot.rsvp(mEvent, newRSVP);
                                 if (InError.isOk()) {
-                                    mIbot.readMyEvents(true,true);
+                                    mIbot.readMyEvents(true, mEvent.mEventId);
                                     InEvent subev = mIbot.mEvents.get(mEvent.mEventId);
                                     if (subev == null || subev.imGoing() != newRSVP)
                                         InError.get().add(InError.ErrSeverity.INFO,
@@ -339,11 +345,12 @@ public class EventList extends ActionBarActivity {
             }
         }
     }
+
     private class DataUpdateReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
             if (intent.getAction().equals(InService.RELOAD_EVENTS)) {
-                mFrag.loadevents(false,false);
+                mFrag.loadevents(false, false);
             }
         }
     }

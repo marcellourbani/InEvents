@@ -49,6 +49,7 @@ public class InternationsBot {
     private static final String MYEVENTSURL = "http://www.internations.org/events/my?ref=he_ev_me",
             SIGNUPURL = "https://www.internations.org/security/do-login/";
     static final String INTAG = "IN_EVENTS";
+    public static final String ALLEVENTS = "ALLEVENTS";
     private String mUser;
     private String mPass;
     private final SharedPreferences mPref;
@@ -263,7 +264,7 @@ public class InternationsBot {
     }
 
     private String extractTable(String source, String id) {
-        Matcher m = Pattern.compile("(<table[^>]*" + id + ".*/table>)",Pattern.DOTALL).matcher(source);
+        Matcher m = Pattern.compile("(<table[^>]*" + id + ".*/table>)", Pattern.DOTALL).matcher(source);
         if (m.find()) {
             String s = m.group(1);
             return s.substring(0, s.indexOf("/table>") + 7);
@@ -285,7 +286,7 @@ public class InternationsBot {
         else return source.substring(start);
     }
 
-    public void readMyEvents(boolean save,boolean minRefine) {
+    public void readMyEvents(boolean save, String torefresh) {
         final String DIVCLASS = "js-calendar-my-events", NEXTDIVCLAS = "t-recommended-events";
         try {
             ArrayMap<String, InEvent> events = new ArrayMap<>();
@@ -301,7 +302,9 @@ public class InternationsBot {
                     try {
                         InEvent event = new InEvent(evel, evtab == null);
                         if (!event.isExpired()) {
-                            if (event.mMine&&((event.mLocation!=null&&event.mLocation.length()>0)||!minRefine))refineEvent(event);
+                            String s = event.toString();
+                            if ( needRefine(event,torefresh))
+                                refineEvent(event);
                             addOrUpdateEvent(event);
                             events.put(event.mEventId, event);
                         }
@@ -335,6 +338,14 @@ public class InternationsBot {
         }
     }
 
+    private boolean needRefine(InEvent event, String torefresh) {
+        if(torefresh==ALLEVENTS||event.mEventId.equals(torefresh))return true;
+        InEvent old = mEvents.get(event.mEventId);
+        if (old.mLocation != null && event.mLocation.length() > 0)
+            return false;
+        else return true;
+    }
+
     private void refineEvent(InEvent event) throws Exception {
         String ev = event.getRefineUrl();
         ev = mClient.geturl_string(ev);
@@ -354,7 +365,7 @@ public class InternationsBot {
             }
             mEvents.put(event.mEventId, event);
         } else //the 'my events' view gives more details, do not overwrite if comes from there and this doesn't
-            if (event.mMine || !old.mMine) old.merge(event);
+            if (event.mLocation!=null || old.mLocation==null) old.merge(event);
     }
 
     public void readGroupsEvents() {
