@@ -128,7 +128,7 @@ public class EventList extends ActionBarActivity {
                 return true;
             case R.id.action_home:
                 Intent web = new Intent(EventList.this, InWeb.class);
-                web.setData(Uri.parse(InternationsBot.BASEURL));
+                web.putExtra(InWeb.EVENT_URL,InternationsBot.BASEURL);
                 web.putExtra(InWeb.CURRENT_COOKIES, InApp.getbot().getCookies());
                 startActivity(web);
                 return true;
