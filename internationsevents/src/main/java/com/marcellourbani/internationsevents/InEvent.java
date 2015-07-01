@@ -253,15 +253,9 @@ public class InEvent {
     }
 
     public String getRsvpUrl(boolean attend, boolean invited) {
-        if (mGroupId == null) {
-            return "http://www.internations.org/events/" +
-                    (attend ? "signin/" : "signout/") + mEventId;
-        } else {
-            String url = "http://www.internations.org/activity-group/" + mGroupId + "/activity/" + mEventId +
-                    "/attendance/";
-            if (invited) url = url + (attend ? "accept" : "decline");
-            return url;
-        }
+        String url=mEventUrl;
+        if(url.startsWith("http:"))url="https:"+url.substring(5);
+        return url+(attend?(isEvent()?"/attend":"/accept"):"/decline");
     }
 
     public boolean isEvent() {

@@ -39,7 +39,8 @@ public class httpClient {
     DefaultHttpClient httpClient;
 
     public httpClient() {
-        String UA = "Mozilla/5.0 (Linux; Android 4.3; GT-I9505 Build/JSS15J) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/32.0.1700.72 Mobile Safari/537.36 OPR/19.0.1340.69721";
+        String UA = //"Mozilla/5.0 (Linux; Android 4.3; GT-I9505 Build/JSS15J) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/32.0.1700.72 Mobile Safari/537.36 OPR/19.0.1340.69721";
+        "user-agent:Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.130 Safari/537.36";
         DefaultHttpClient client = new DefaultHttpClient();
         ClientConnectionManager mgr = client.getConnectionManager();
         HttpParams params = client.getParams();

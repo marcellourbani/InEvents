@@ -107,57 +107,29 @@ public class InternationsBot {
     }
 
     public boolean rsvp(InEvent event, boolean going) {
+        final Pattern RESULTP = Pattern.compile("\"success\":([a-z]*),\"message\":\"([^\"]*)\"");
         try {
             if (!sign()) return false;
             ArrayList<NameValuePair> parms = new ArrayList<>();
             String url = event.getRsvpUrl(going);
             String result;
-            if (event.isEvent()) {
-                result = mClient.geturl_string(url);
-                if (going)
-                    return result.matches("Your attendance to event.*has been saved.*flash__close-button js-no-modal");
-                else
-                    return result.matches("Your attendance to event.*has been cancelled.*flash__close-button js-no-modal");
-            } else {
-                String token = InApp.get().getInToken();
-                if (token == null || token.length() == 0) {
-                    String evText = mClient.geturl_string(event.mEventUrl);
-                    Matcher mat = Pattern.compile("(?s)common_base_form__token[^>]*value=\"([^\"]*)").matcher(evText);
-                    if (mat.find()) token = mat.group(1);
-                }
-                String method;
-                if (event.beenInvited() || !going) {
-                    method = going ? "PATCH" : "DELETE";
-                    parms.add(new BasicNameValuePair("_method", method));
-                }
-                parms.add(new BasicNameValuePair("common_base_form[_token]", token));
-                parms.add(new BasicNameValuePair("redirectRoute", "_activity_group_activity_get"));
-                parms.add(new BasicNameValuePair("redirectRouteParameters[activityGroupId]", event.mGroupId));
-                parms.add(new BasicNameValuePair("redirectRouteParameters[activityId]", event.mEventId));
-                result = mClient.posturl_string(url, parms);
-                //accepting invitation failed, try subscribing the event as not invited
-                //after the event was downloaded
-                //try subscribing without invitation
-                if ((result.indexOf("error__sorry") > 0) && going && event.beenInvited()) {
-                    event.getRsvpUrl(true, false);
-                    parms.clear();
-                    parms.add(new BasicNameValuePair("common_base_form[_token]", token));
-                    parms.add(new BasicNameValuePair("redirectRoute", "_activity_group_activity_get"));
-                    parms.add(new BasicNameValuePair("redirectRouteParameters[activityGroupId]", event.mGroupId));
-                    parms.add(new BasicNameValuePair("redirectRouteParameters[activityId]", event.mEventId));
-                    result = mClient.posturl_string(url, parms);
-                }
-                //if we still can't parse it
-                if (result.indexOf("error__sorry") > 0) {
-                    InError.get().add(InError.ErrType.FORMPROC, "Error changing RSVP, please try from website");
+            ArrayList<NameValuePair> params= new ArrayList<>();
+            params.add(new BasicNameValuePair("_method",going?"PUT":"DELETE"));
+            result=mClient.posturl_string(url, params);
+            Matcher m = RESULTP.matcher(result);
+            if(m.matches()){
+                InError.get().add(InError.ErrSeverity.INFO,
+                        InError.ErrType.NETWORK,
+                        m.group(2));
+                if(m.group(1).equals("true")){
+                    event.set_attendance(going);
+                    return true;
+                }else{
                     return false;
                 }
-                if (going) {
-                    return result.matches("You are now attending this.*flash__close-button js-no-modal")
-                            || result.matches("You.re on the guest list");
-                } else {
-                    return result.matches("Your attendance to the Activity has been cancelled.*flash__close-button js-no-modal");
-                }
+            }else{
+                //InError.get().add(InError.ErrType.NETWORK, "Error changing RSVP, please try from browser.\n" );
+                return false;
             }
         } catch (Throwable e) {
             InError.get().add(InError.ErrType.NETWORK, "Error changing RSVP, check your network connection.\n" + e.getMessage());
@@ -291,6 +263,7 @@ public class InternationsBot {
         final String DIVCLASS = "js-calendar-your-invitations",
                      DIVCLASS2 = "js-calendar-my-events",
                      NEXTDIVCLAS = "t-recommended-events";
+        String divclass = DIVCLASS;
         try {
             ArrayMap<String, InEvent> events = new ArrayMap<>();
             String ev = mClient.geturl_string(MYEVENTSURL);
@@ -299,12 +272,15 @@ public class InternationsBot {
             else evtab = null;
             if (evtab == null) {
                 String e = extractDiv(ev, DIVCLASS, NEXTDIVCLAS);
-                if(e==null)e = extractDiv(ev, DIVCLASS2, NEXTDIVCLAS);
+                if(e==null){
+                    e = extractDiv(ev, DIVCLASS2, NEXTDIVCLAS);
+                    divclass=DIVCLASS2;
+                }
                 ev = e;
             }
             if (ev != null) {
                 Document doc = Jsoup.parse(ev);
-                Elements elements = evtab == null ? doc.select("div." + DIVCLASS + " div.t-calendar-entry") : doc.select("#my_upcoming_events_table tbody tr");
+                Elements elements = evtab == null ? doc.select("div." + divclass + " div.t-calendar-entry") : doc.select("#my_upcoming_events_table tbody tr");
                 for (Element evel : elements) {
                     try {
                         InEvent event = new InEvent(evel, evtab == null);
