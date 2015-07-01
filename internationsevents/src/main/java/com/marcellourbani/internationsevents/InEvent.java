@@ -124,26 +124,6 @@ public class InEvent {
     }
 
     public void refine(String event) throws ParseException {
-        if (!isEvent()) {
-            Document doc = Jsoup.parse(event);
-            String name = "", name2 = "", value = "";
-            Elements e = doc.select("div#activity-card div.details").get(0).children();
-            for (int i = 0; i < e.size(); i++) {
-                Element element = e.get(i);
-                name2 = element.text();
-                if (element.tag().toString().equals("h3"))
-                    name = element.text();
-                else if (element.tag().toString().equals("p")) {
-                    value = element.text();
-                    if (name.equals("Starts:")) setEventTimeDetail(mStart,value);
-                    else if (name.equals("Ends:")) {
-                        mStop = new GregorianCalendar();
-                        setEventTimeDetail(mStop, value);
-                    } else if (name.equals("Location:"))
-                        mLocation = value;
-                }
-            }
-        }else{
             String[] lines = event.split("\n");
             boolean active=false;
             for(int i=0;i<lines.length;i++){
@@ -159,7 +139,7 @@ public class InEvent {
                 if(kv[0].indexOf("DTSTART")==0)mStart=tsToCal(kv[1]);
                 if(kv[0].indexOf("DTEND")==0)mStop=tsToCal(kv[1]);
             }
-        }
+
     }
 
     private void setEventTimeDetail(GregorianCalendar cal, String datetext) {
@@ -196,7 +176,7 @@ public class InEvent {
             String s = mEventUrl.substring(0,idx)+"ical/"+mEventId;
             return s;
         } else
-            return mEventUrl;
+            return mEventUrl+"/ical/";
     }
 
     private enum SubscStatus {
@@ -245,32 +225,13 @@ public class InEvent {
 
         public static SubscStatus decodeCalendarElement(Element element, InEvent event) {
             //do we have an attending section?
-            Elements tmp = event.isEvent() ? element.select("span.t-attending-event-message") : element.select("span.t-attending-activity-message");
-            if (tmp != null && tmp.size() > 0) {
-                //we do. Do we have an accept button?
-                Elements t2 = event.isEvent() ? tmp.get(0).select("button.t-accept-activity-button") : tmp.get(0).select("button.t-accept-event-button");
-                if (t2 != null && t2.size() > 0) return INVITED;//Yes -> we was invited
-                else {
-                    //no->either we confirmed, went already OR full/closed
-                    t2 = tmp.get(0).select("button.t-attend-event-button");
-                    if (t2 != null && t2.size() > 0)
-                        return NOTGOING;//IN event, RSVP open, not going or went
-                    else {
-                        //get the internal span
-                        t2 = tmp.get(0).select(event.isEvent() ? "span.t-attending-event-message" : "span.t-attending-activity-message");
-                        if (t2 != null && t2.size() > 0) {
-                            String s = t2.get(0).toString();
-                            if (s.indexOf("attended") > 0) return WENT;
-                            if (s.indexOf("attending") > 0) return GOING;
-                        }
-                        t2 = tmp.get(0).select("span.t-guestlist-closed");
-                        if (t2 != null && t2.size() > 0) return CLOSED;
-                        t2 = tmp.get(0).select("span.t-guestlist-limit-reached");
-                        if (t2 != null && t2.size() > 0) return FULL;
-                    }
-                }
-            }
-            return NOTGOING;//should never get here....
+            Elements tmp = element.select("span.t-attending-message");
+            if (tmp != null && tmp.size() > 0) return GOING;
+            tmp = element.select("span.t-guestlist-limit-reached");
+            if (tmp != null && tmp.size() > 0)return FULL;
+            tmp = element.select("span.t-guestlist-closed");
+            if (tmp != null && tmp.size() > 0)return CLOSED;
+            return NOTGOING;
         }
 
         public boolean canBeChanged() {

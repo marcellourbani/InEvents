@@ -287,14 +287,21 @@ public class InternationsBot {
     }
 
     public void readMyEvents(boolean save, String torefresh) {
-        final String DIVCLASS = "js-calendar-my-events", NEXTDIVCLAS = "t-recommended-events";
+//        final String DIVCLASS = "js-calendar-my-events", NEXTDIVCLAS = "t-recommended-events";
+        final String DIVCLASS = "js-calendar-your-invitations",
+                     DIVCLASS2 = "js-calendar-my-events",
+                     NEXTDIVCLAS = "t-recommended-events";
         try {
             ArrayMap<String, InEvent> events = new ArrayMap<>();
             String ev = mClient.geturl_string(MYEVENTSURL);
             String evtab = extractTable(ev, "my_upcoming_events_table");
             if (evtab != null && evtab.length() > 0) ev = evtab;
             else evtab = null;
-            if (evtab == null) ev = extractDiv(ev, DIVCLASS, NEXTDIVCLAS);
+            if (evtab == null) {
+                String e = extractDiv(ev, DIVCLASS, NEXTDIVCLAS);
+                if(e==null)e = extractDiv(ev, DIVCLASS2, NEXTDIVCLAS);
+                ev = e;
+            }
             if (ev != null) {
                 Document doc = Jsoup.parse(ev);
                 Elements elements = evtab == null ? doc.select("div." + DIVCLASS + " div.t-calendar-entry") : doc.select("#my_upcoming_events_table tbody tr");
@@ -341,7 +348,7 @@ public class InternationsBot {
     private boolean needRefine(InEvent event, String torefresh) {
         if(torefresh==ALLEVENTS||event.mEventId.equals(torefresh))return true;
         InEvent old = mEvents.get(event.mEventId);
-        if (old.mLocation != null && event.mLocation.length() > 0)
+        if (old!=null&&old.mLocation != null && event.mLocation.length() > 0)
             return false;
         else return true;
     }
