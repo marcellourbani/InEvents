@@ -34,6 +34,7 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 import java.util.Locale;
+import java.util.SimpleTimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -155,6 +156,7 @@ public class InEvent {
 
     private GregorianCalendar tsToCal(String ts) {
         GregorianCalendar cal=new GregorianCalendar();
+        cal.setTimeZone(SimpleTimeZone.getTimeZone("UTC"));
         int year = Integer.parseInt(ts.substring(0, 4));
         int month = Integer.parseInt(ts.substring(4, 6))-1;
         int day = Integer.parseInt(ts.substring(6, 8));
