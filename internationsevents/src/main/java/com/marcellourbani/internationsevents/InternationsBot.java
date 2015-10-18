@@ -46,6 +46,7 @@ import java.util.regex.Pattern;
 
 public class InternationsBot {
     public static final String BASEURL = "http://www.internations.org";
+    public static final String MESSAGEURL = "https://www.internations.org/message/?ref=he_msg";
     private static final String MYEVENTSURL = "http://www.internations.org/events/my?ref=he_ev_me",
             SIGNUPURL = "https://www.internations.org/security/do-login/";
     static final String INTAG = "IN_EVENTS";

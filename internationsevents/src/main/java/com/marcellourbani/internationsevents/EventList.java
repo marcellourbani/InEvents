@@ -114,6 +114,7 @@ public class EventList extends ActionBarActivity {
         // automatically handle clicks on the Home/Up button, so long
         // as you specify a parent activity in AndroidManifest.xml.
         int id = item.getItemId();
+        Intent web;
         switch (id) {
             case R.id.action_settings:
                 startActivity(new Intent(this, InPreferences.class));
@@ -127,8 +128,14 @@ public class EventList extends ActionBarActivity {
                 mFrag.loadevents(true, true);
                 return true;
             case R.id.action_home:
-                Intent web = new Intent(EventList.this, InWeb.class);
+                web = new Intent(EventList.this, InWeb.class);
                 web.putExtra(InWeb.EVENT_URL,InternationsBot.BASEURL);
+                web.putExtra(InWeb.CURRENT_COOKIES, InApp.getbot().getCookies());
+                startActivity(web);
+                return true;
+            case R.id.action_messages:
+                web = new Intent(EventList.this, InWeb.class);
+                web.putExtra(InWeb.EVENT_URL,InternationsBot.MESSAGEURL);
                 web.putExtra(InWeb.CURRENT_COOKIES, InApp.getbot().getCookies());
                 startActivity(web);
                 return true;
