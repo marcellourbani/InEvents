@@ -110,39 +110,13 @@ public class InWebFragment extends Fragment {
         return view;
     }
 
-    //    private class SignWorker extends AsyncTask<String, Integer, Boolean> {
-//        String url;
-//        @Override
-//        protected void onPostExecute(Boolean o) {
-//            if(o){
-//                setcookies(InApp.getbot().getCookies());
-//                web.loadUrl(url);
-//            }
-//        }
-//
-//        @Override
-//        protected Boolean doInBackground(String...strings) {
-//            url=strings[0];
-//            return InApp.getbot().sign();
-//        }
-//    }
-//    @Override
-//    public void onConfigurationChanged(Configuration newConfig) {
-//        if (web != null) {
-//            // Remove the WebView from the old placeholder
-//            mWebParent.removeView(web);
-//        }
-//        super.onConfigurationChanged(newConfig);
-//        // Reinitialize the UI
-//        initUI();
-//    }
-
     @Override
-    public void onAttach(Activity activity) {
+    public void onAttach(Context activity) {
         super.onAttach(activity);
         try {
             mListener = (OnFragmentInteractionListener) activity;
             mListener.onFragmentLoadingStatus(mIsLoading);
+            mListener.onAttach(this);
         } catch (ClassCastException e) {
             throw new ClassCastException(activity.toString()
                     + " must implement OnFragmentInteractionListener");
@@ -159,7 +133,15 @@ public class InWebFragment extends Fragment {
     @Override
     public void onDetach() {
         super.onDetach();
+        if (mListener != null) mListener.onAttach(null);
         mListener = null;
+    }
+
+    boolean goBack() {
+        if (web.canGoBack()) {
+            web.goBack();
+            return true;
+        } else return false;
     }
 
     /* Class that prevents opening the Browser */
@@ -206,6 +188,8 @@ public class InWebFragment extends Fragment {
 
     public interface OnFragmentInteractionListener {
         void onFragmentLoadingStatus(boolean loading);
+
+        void onAttach(InWebFragment fragment);
     }
 
 }

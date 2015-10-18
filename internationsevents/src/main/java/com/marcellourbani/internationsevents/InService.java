@@ -47,7 +47,7 @@ public class InService extends IntentService {
     @Override
     protected void onHandleIntent(Intent intent) {
         if (InApp.get().isConnected())
-            new refreshTask(intent).execute();
+            new RefreshTask(intent).doInBackground();
         else {
             InReceiver.completeWakefulIntent(intent);
             retry();
@@ -82,9 +82,9 @@ public class InService extends IntentService {
         return 3600000 * (sprefs == null ? 6 : Integer.parseInt(sprefs.getString("pr_refresh_interval", "6")));
     }
 
-    private class refreshTask extends AsyncTask<String, Integer, Boolean> {
+    private class RefreshTask extends AsyncTask<String, Integer, Boolean> {
         private Intent mIntent;
-        public refreshTask(Intent i){
+        public RefreshTask(Intent i){
             mIntent = i;
         }
         @Override
