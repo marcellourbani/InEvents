@@ -25,6 +25,8 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v7.app.ActionBarActivity;
+import android.support.v7.app.AppCompatActivity;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -32,13 +34,16 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ListView;
 
-public class EventList extends ActionBarActivity {
+import java.util.ArrayList;
+
+public class EventList extends AppCompatActivity {
     private static EventsFragment mFrag;
     protected MenuItem refresh;
     private static final int SETPASSWORD = 2001;
     private DataUpdateReceiver dataUpdateReceiver;
     String mNotifiedEvent;
     Intent mLastIntent = null;
+    private ArrayList<AsyncTask> tasks = new ArrayList<>();
 
     protected enum Operations {LOAD, RSVPYES, RSVPNO, REFRESH, REFRESHALL}
 
@@ -100,9 +105,11 @@ public class EventList extends ActionBarActivity {
         return true;
     }
 
-    void setProgressIndicator(boolean on) {
+    void setProgressIndicator(boolean on, AsyncTask t) {
+        if (on) tasks.add(t);
+        else tasks.remove(t);
         if (refresh != null)
-            if (on)
+            if (!tasks.isEmpty())
                 refresh.setActionView(R.layout.actionbar_indeterminate_progress);
             else
                 refresh.setActionView(null);
@@ -148,19 +155,21 @@ public class EventList extends ActionBarActivity {
         Intent intent = new Intent(android.content.Intent.ACTION_VIEW, uri);
         startActivity(intent);
     }
-    private void showEventActivity(InEvent event){
+
+    private void showEventActivity(InEvent event) {
         Intent web = new Intent(EventList.this, InWeb.class);
         web.putExtra(InWeb.EVENT_URL, event.mEventUrl);
         web.putExtra(InWeb.CURRENT_COOKIES, InApp.getbot().getCookies());
         startActivity(web);
     }
+
     public void showevent(InEvent event) {
         if (InApp.getbot().mSigned) {
             showEventActivity(event);
         } else {
             LinkWorker worker = new LinkWorker();
-            EventList.this.setProgressIndicator(true);
-            worker.execute(event);
+            EventList.this.setProgressIndicator(true,worker);
+            worker.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, event);
         }
     }
 
@@ -173,10 +182,10 @@ public class EventList extends ActionBarActivity {
 
         @Override
         protected void onPostExecute(Boolean o) {
-            EventList.this.setProgressIndicator(false);
+            EventList.this.setProgressIndicator(false,this);
             if (o)
                 showEventActivity(mEvent);
-             else
+            else
                 InError.get().showmax();
             InError.get().clear();
         }
@@ -199,8 +208,8 @@ public class EventList extends ActionBarActivity {
         }
 
         @Override
-        public void onAttach(Activity activity) {
-            super.onAttach(activity);
+        public void onAttach(Context c) {
+            super.onAttach(c);
             scrollToNotified();
         }
 
@@ -214,14 +223,14 @@ public class EventList extends ActionBarActivity {
 
         public void loadevents(boolean refresh, boolean all) {
             EventList el = ((EventList) getActivity());
-            if (el != null) el.setProgressIndicator(true);
             mNw = new NetWorker();
+            if (el != null) el.setProgressIndicator(true, mNw);
             if (refresh) {
                 if (all)
-                    mNw.execute(Operations.REFRESHALL);
+                    mNw.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, Operations.REFRESHALL);
                 else
-                    mNw.execute(Operations.REFRESH);
-            } else mNw.execute(Operations.LOAD);
+                    mNw.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, Operations.REFRESH);
+            } else mNw.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, Operations.LOAD);
         }
 
         void scrollToNotified() {
@@ -242,10 +251,11 @@ public class EventList extends ActionBarActivity {
 
         public void rsvp(InEvent event, boolean going) {
             EventList el = (EventList) getActivity();
-            if (el != null) el.setProgressIndicator(true);
-            mNw = new NetWorker();
-            mNw.mEvent = event;
-            mNw.execute(going ? Operations.RSVPYES : Operations.RSVPNO);
+            NetWorker nw = new NetWorker();
+            if (el != null) el.setProgressIndicator(true, nw);
+            nw.mEvent = event;
+            nw.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,
+                    going ? Operations.RSVPYES : Operations.RSVPNO);
         }
 
         private class NetWorker extends AsyncTask<Operations, Integer, Boolean> {
@@ -257,7 +267,7 @@ public class EventList extends ActionBarActivity {
             protected void onPostExecute(Boolean o) {
                 super.onPostExecute(o);
                 EventList el = ((EventList) getActivity());
-                if (el != null) el.setProgressIndicator(false);
+                if (el != null) el.setProgressIndicator(false, this);
                 if (o) {
                     InCalendar.syncEvents(mIbot.mEvents);
                     if (mEventAdapter == null) {
@@ -291,6 +301,7 @@ public class EventList extends ActionBarActivity {
                         EventsFragment.this.getListView().invalidateViews();
                     }
                 } catch (Exception e) {
+                    Log.d(InternationsBot.INTAG,e.toString());
                 }
             }
 

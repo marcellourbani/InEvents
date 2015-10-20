@@ -96,7 +96,7 @@ public class InternationsBot {
     public boolean passIsSet() {
         mUser = mPref.getString("pr_email", "");
         mPass = mPref.getString("pr_password", "");
-        return mPass != null && mPass.length() > 0;
+        return mPass.length() > 0;
     }
 
     public InternationsBot(SharedPreferences sharedPref) {
@@ -285,7 +285,6 @@ public class InternationsBot {
                     try {
                         InEvent event = new InEvent(evel, evtab == null);
                         if (!event.isExpired()) {
-                            String s = event.toString();
                             if ( needRefine(event,torefresh))
                                 refineEvent(event);
                             addOrUpdateEvent(event);
@@ -322,11 +321,9 @@ public class InternationsBot {
     }
 
     private boolean needRefine(InEvent event, String torefresh) {
-        if(torefresh==ALLEVENTS||event.mEventId.equals(torefresh))return true;
+        if(torefresh.equals(ALLEVENTS)||event.mEventId.equals(torefresh))return true;
         InEvent old = mEvents.get(event.mEventId);
-        if (old!=null&&old.mLocation != null && event.mLocation.length() > 0)
-            return false;
-        else return true;
+        return !(old != null && old.mLocation != null && event.mLocation.length() > 0);
     }
 
     private void refineEvent(InEvent event) throws Exception {
