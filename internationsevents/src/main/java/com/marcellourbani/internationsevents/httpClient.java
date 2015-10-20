@@ -27,12 +27,12 @@ import java.net.CookiePolicy;
 import java.net.HttpCookie;
 import java.util.List;
 
-public class httpClient {
+public class HttpClient {
     private final static String UA = "user-agent:Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.130 Safari/537.36";
     private final OkHttpClient client;
     private final CookieManager manager;
 
-    public httpClient() {
+    public HttpClient() {
         client = new OkHttpClient();
         manager=new CookieManager();
         manager.setCookiePolicy(CookiePolicy.ACCEPT_ALL);
@@ -45,7 +45,7 @@ public class httpClient {
                 .url(url)
                 .build();
         Response response = client.newCall(request).execute();
-        if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
+        if (!response.isSuccessful()) throw new HttpClientException( response);
         return response.body().string();
     }
 
@@ -60,7 +60,7 @@ public class httpClient {
                 .post(formBody)
                 .build();
         Response response = client.newCall(request).execute();
-        if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
+        if (!response.isSuccessful()) throw new HttpClientException(response);
 
         return response.body().string();
     }
@@ -84,6 +84,14 @@ public class httpClient {
 
         public String getValue() {
             return value;
+        }
+    }
+    public static class HttpClientException extends IOException{
+        public final Response response;
+
+        HttpClientException(Response r){
+            super("Unexpected code " + r);
+            response = r;
         }
     }
 }

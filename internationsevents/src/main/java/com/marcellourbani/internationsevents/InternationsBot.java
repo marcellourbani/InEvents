@@ -41,7 +41,8 @@ import java.util.Date;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-import com.marcellourbani.internationsevents.httpClient.NameValuePair;
+
+import com.marcellourbani.internationsevents.HttpClient.NameValuePair;
 
 public class InternationsBot {
     public static final String BASEURL = "http://www.internations.org";
@@ -53,7 +54,7 @@ public class InternationsBot {
     private String mUser;
     private String mPass;
     private final SharedPreferences mPref;
-    httpClient mClient;
+    HttpClient mClient;
     boolean mSigned = false;
     ArrayMap<String, InEvent> mEvents = new ArrayMap<>();
     ArrayMap<String, InGroup> mGroups = new ArrayMap<>();
@@ -100,7 +101,7 @@ public class InternationsBot {
     }
 
     public InternationsBot(SharedPreferences sharedPref) {
-        mClient = new httpClient();
+        mClient = new HttpClient();
         mPref = sharedPref;
         mUser = sharedPref.getString("pr_email", "");
         mPass = sharedPref.getString("pr_password", "");
@@ -113,26 +114,28 @@ public class InternationsBot {
             ArrayList<NameValuePair> parms = new ArrayList<>();
             String url = event.getRsvpUrl(going);
             String result;
-            ArrayList<NameValuePair> params= new ArrayList<>();
-            params.add(new NameValuePair("_method",going?"PUT":"DELETE"));
-            result=mClient.posturl_string(url, params);
+            ArrayList<NameValuePair> params = new ArrayList<>();
+            params.add(new NameValuePair("_method", going ? "PUT" : "DELETE"));
+            result = mClient.posturl_string(url, params);
             Matcher m = RESULTP.matcher(result);
-            if(m.matches()){
+            if (m.matches()) {
                 InError.get().add(InError.ErrSeverity.INFO,
                         InError.ErrType.NETWORK,
                         m.group(2));
-                if(m.group(1).equals("true")){
+                if (m.group(1).equals("true")) {
                     event.set_attendance(going);
                     return true;
-                }else{
+                } else {
                     return false;
                 }
-            }else{
+            } else {
                 //InError.get().add(InError.ErrType.NETWORK, "Error changing RSVP, please try from browser.\n" );
                 return false;
             }
+        } catch (HttpClient.HttpClientException exception) {
+            InError.get().add(InError.ErrType.NETWORK, "Error changing RSVP (event closed?).\nPlease try over the website\n\n");
         } catch (Throwable e) {
-            InError.get().add(InError.ErrType.NETWORK, "Error changing RSVP, check your network connection.\n" + e.getMessage());
+            InError.get().add(InError.ErrType.NETWORK, "Error changing RSVP.\nnetwork connection error\n\n"+e.getMessage());
             Log.d(INTAG, e.getMessage());
         }
         return false;
@@ -261,8 +264,8 @@ public class InternationsBot {
     public void readMyEvents(boolean save, String torefresh) {
 //        final String DIVCLASS = "js-calendar-my-events", NEXTDIVCLAS = "t-recommended-events";
         final String DIVCLASS = "js-calendar-your-invitations",
-                     DIVCLASS2 = "js-calendar-my-events",
-                     NEXTDIVCLAS = "t-recommended-events";
+                DIVCLASS2 = "js-calendar-my-events",
+                NEXTDIVCLAS = "t-recommended-events";
         String divclass = DIVCLASS;
         try {
             ArrayMap<String, InEvent> events = new ArrayMap<>();
@@ -272,9 +275,9 @@ public class InternationsBot {
             else evtab = null;
             if (evtab == null) {
                 String e = extractDiv(ev, DIVCLASS, NEXTDIVCLAS);
-                if(e==null){
+                if (e == null) {
                     e = extractDiv(ev, DIVCLASS2, NEXTDIVCLAS);
-                    divclass=DIVCLASS2;
+                    divclass = DIVCLASS2;
                 }
                 ev = e;
             }
@@ -285,7 +288,7 @@ public class InternationsBot {
                     try {
                         InEvent event = new InEvent(evel, evtab == null);
                         if (!event.isExpired()) {
-                            if ( needRefine(event,torefresh))
+                            if (needRefine(event, torefresh))
                                 refineEvent(event);
                             addOrUpdateEvent(event);
                             events.put(event.mEventId, event);
@@ -321,7 +324,7 @@ public class InternationsBot {
     }
 
     private boolean needRefine(InEvent event, String torefresh) {
-        if(torefresh.equals(ALLEVENTS)||event.mEventId.equals(torefresh))return true;
+        if (torefresh.equals(ALLEVENTS) || event.mEventId.equals(torefresh)) return true;
         InEvent old = mEvents.get(event.mEventId);
         return !(old != null && old.mLocation != null && event.mLocation.length() > 0);
     }
@@ -345,7 +348,7 @@ public class InternationsBot {
             }
             mEvents.put(event.mEventId, event);
         } else //the 'my events' view gives more details, do not overwrite if comes from there and this doesn't
-            if (event.mLocation!=null || old.mLocation==null) old.merge(event);
+            if (event.mLocation != null || old.mLocation == null) old.merge(event);
     }
 
     public void readGroupsEvents() {
