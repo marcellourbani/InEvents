@@ -3,21 +3,21 @@
     xmlns:tools="http://schemas.android.com/tools"
     tools:context="com.marcellourbani.internationsevents.EventList" >
     <item
+        android:id="@+id/action_messages"
+        android:orderInCategory="100"
+        app:showAsAction="ifRoom"
+        android:icon="@drawable/ic_menu_start_conversation"
+        android:title="@string/menu_messages"/>
+    <item
         android:id="@+id/action_home"
         android:orderInCategory="100"
         app:showAsAction="ifRoom"
         android:icon="@drawable/ic_menu_home"
         android:title="@string/menu_home"/>
     <item
-        android:id="@+id/action_messages"
-        android:orderInCategory="100"
-        app:showAsAction="ifRoom"
-        android:icon="@drawable/ic_menu_start_conversation"
-        android:title="@string/menu_home"/>
-    <item
         android:id="@+id/action_refresh"
         android:orderInCategory="100"
-        app:showAsAction="ifRoom"
+        app:showAsAction="always"
         android:icon="@drawable/ic_menu_refresh"
         android:title="@string/menu_refreshmy"/>
     <item android:id="@+id/action_settings"

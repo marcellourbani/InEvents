@@ -129,13 +129,13 @@ public class EventList extends ActionBarActivity {
                 return true;
             case R.id.action_home:
                 web = new Intent(EventList.this, InWeb.class);
-                web.putExtra(InWeb.EVENT_URL,InternationsBot.BASEURL);
+                web.putExtra(InWeb.EVENT_URL, InternationsBot.BASEURL);
                 web.putExtra(InWeb.CURRENT_COOKIES, InApp.getbot().getCookies());
                 startActivity(web);
                 return true;
             case R.id.action_messages:
                 web = new Intent(EventList.this, InWeb.class);
-                web.putExtra(InWeb.EVENT_URL,InternationsBot.MESSAGEURL);
+                web.putExtra(InWeb.EVENT_URL, InternationsBot.MESSAGEURL);
                 web.putExtra(InWeb.CURRENT_COOKIES, InApp.getbot().getCookies());
                 startActivity(web);
                 return true;
@@ -148,11 +148,20 @@ public class EventList extends ActionBarActivity {
         Intent intent = new Intent(android.content.Intent.ACTION_VIEW, uri);
         startActivity(intent);
     }
-
+    private void showEventActivity(InEvent event){
+        Intent web = new Intent(EventList.this, InWeb.class);
+        web.putExtra(InWeb.EVENT_URL, event.mEventUrl);
+        web.putExtra(InWeb.CURRENT_COOKIES, InApp.getbot().getCookies());
+        startActivity(web);
+    }
     public void showevent(InEvent event) {
-        LinkWorker worker = new LinkWorker();
-        EventList.this.setProgressIndicator(true);
-        worker.execute(event);
+        if (InApp.getbot().mSigned) {
+            showEventActivity(event);
+        } else {
+            LinkWorker worker = new LinkWorker();
+            EventList.this.setProgressIndicator(true);
+            worker.execute(event);
+        }
     }
 
     public void rsvp(InEvent event, boolean going) {
@@ -165,12 +174,9 @@ public class EventList extends ActionBarActivity {
         @Override
         protected void onPostExecute(Boolean o) {
             EventList.this.setProgressIndicator(false);
-            if (o) {
-                Intent web = new Intent(EventList.this, InWeb.class);
-                web.putExtra(InWeb.EVENT_URL, mEvent.mEventUrl);
-                web.putExtra(InWeb.CURRENT_COOKIES, InApp.getbot().getCookies());
-                startActivity(web);
-            } else
+            if (o)
+                showEventActivity(mEvent);
+             else
                 InError.get().showmax();
             InError.get().clear();
         }

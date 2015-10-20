@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <string name="app_name">Internations events</string>
+    <string name="app_name">In events</string>
     <string name="title_future">Upcoming events</string>
     <string name="title_subscribed">Subscribed events</string>
     <string name="action_settings">Settings</string>

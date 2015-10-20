@@ -44,10 +44,11 @@ public class InService extends IntentService {
         super("InService");
     }
 
+    @SuppressWarnings("ResourceType")
     @Override
     protected void onHandleIntent(Intent intent) {
         if (InApp.get().isConnected())
-            new RefreshTask(intent).doInBackground();
+            new RefreshTask(intent).execute();
         else {
             InReceiver.completeWakefulIntent(intent);
             retry();
