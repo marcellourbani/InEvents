@@ -24,15 +24,13 @@ import android.preference.PreferenceManager;
 import android.support.v4.util.ArrayMap;
 import android.util.Log;
 
-import org.apache.http.NameValuePair;
-import org.apache.http.cookie.Cookie;
-import org.apache.http.message.BasicNameValuePair;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
 import java.io.IOException;
+import java.net.HttpCookie;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.text.ParseException;
@@ -43,6 +41,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import com.marcellourbani.internationsevents.httpClient.NameValuePair;
 
 public class InternationsBot {
     public static final String BASEURL = "http://www.internations.org";
@@ -115,7 +114,7 @@ public class InternationsBot {
             String url = event.getRsvpUrl(going);
             String result;
             ArrayList<NameValuePair> params= new ArrayList<>();
-            params.add(new BasicNameValuePair("_method",going?"PUT":"DELETE"));
+            params.add(new NameValuePair("_method",going?"PUT":"DELETE"));
             result=mClient.posturl_string(url, params);
             Matcher m = RESULTP.matcher(result);
             if(m.matches()){
@@ -380,9 +379,9 @@ public class InternationsBot {
             if (passIsSet())
                 try {
                     List<NameValuePair> parms = new ArrayList<>();
-                    parms.add(new BasicNameValuePair("user_email", mUser));
-                    parms.add(new BasicNameValuePair("user_password", mPass));
-                    parms.add(new BasicNameValuePair("remember_me", "1"));
+                    parms.add(new NameValuePair("user_email", mUser));
+                    parms.add(new NameValuePair("user_password", mPass));
+                    parms.add(new NameValuePair("remember_me", "1"));
                     String signoutcome = mClient.posturl_string(SIGNUPURL, parms);
                     mSigned = signoutcome.indexOf("You must login to see this page.") <= 0;
                     if (!mSigned)
@@ -410,9 +409,9 @@ public class InternationsBot {
 
     public Bundle getCookies() {
         Bundle b = new Bundle();
-        List<Cookie> cookies;
+        List<HttpCookie> cookies;
         if ((cookies = mClient == null ? null : mClient.getCookies()) != null) {
-            for (Cookie cookie : cookies)
+            for (HttpCookie cookie : cookies)
                 b.putString(cookie.getName(), cookie.getValue() + "" + "; domain=" + cookie.getDomain());
         }
         return b;

@@ -14,72 +14,76 @@
  */
 package com.marcellourbani.internationsevents;
 
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.conn.ClientConnectionManager;
-import org.apache.http.cookie.Cookie;
-import org.apache.http.impl.client.DefaultHttpClient;
-import org.apache.http.impl.conn.tsccm.ThreadSafeClientConnManager;
-import org.apache.http.params.CoreProtocolPNames;
-import org.apache.http.params.HttpParams;
+import com.squareup.okhttp.FormEncodingBuilder;
+import com.squareup.okhttp.OkHttpClient;
+import com.squareup.okhttp.Request;
+import com.squareup.okhttp.RequestBody;
+import com.squareup.okhttp.Response;
 
-import java.io.BufferedReader;
+
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.StringWriter;
+import java.net.CookieManager;
+import java.net.CookiePolicy;
+import java.net.HttpCookie;
 import java.util.List;
-import java.util.Scanner;
 
 public class httpClient {
-    DefaultHttpClient httpClient;
+    private final static String UA = "user-agent:Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.130 Safari/537.36";
+    private final OkHttpClient client;
+    private final CookieManager manager;
 
     public httpClient() {
-        String UA = //"Mozilla/5.0 (Linux; Android 4.3; GT-I9505 Build/JSS15J) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/32.0.1700.72 Mobile Safari/537.36 OPR/19.0.1340.69721";
-        "user-agent:Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.130 Safari/537.36";
-        DefaultHttpClient client = new DefaultHttpClient();
-        ClientConnectionManager mgr = client.getConnectionManager();
-        HttpParams params = client.getParams();
-        params.setParameter(CoreProtocolPNames.USER_AGENT, UA);
-        httpClient = new DefaultHttpClient(new ThreadSafeClientConnManager(params,
-                mgr.getSchemeRegistry()), params);
-    }
-
-    public InputStream geturl_stream(String url) throws IOException {
-        HttpGet httpget = new HttpGet(url);
-        HttpResponse response = httpClient.execute(httpget);
-        HttpEntity entity = response.getEntity();
-        return entity.getContent();
+        client = new OkHttpClient();
+        manager=new CookieManager();
+        manager.setCookiePolicy(CookiePolicy.ACCEPT_ALL);
+        client.setCookieHandler(manager);
     }
 
     public String geturl_string(String url) throws IOException {
-        return streamToString(geturl_stream(url));
+        Request request = new Request.Builder()
+                .header("User-Agent", UA)
+                .url(url)
+                .build();
+        Response response = client.newCall(request).execute();
+        if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
+        return response.body().string();
     }
 
-    public InputStream posturl_stream(String url, List<NameValuePair> params) throws IOException {
-        HttpPost httppost = new HttpPost(url);
-        httppost.setEntity(new UrlEncodedFormEntity(params));
-        HttpResponse response = httpClient.execute(httppost);
-        if (response.getStatusLine().getStatusCode() == 401) {
-            return null;
-        }
-        HttpEntity entity = response.getEntity();
-        return entity.getContent();
-    }
 
     public String posturl_string(String url, List<NameValuePair> params) throws Throwable {
-        return streamToString(posturl_stream(url, params));
+        FormEncodingBuilder builder = new FormEncodingBuilder();
+        for (NameValuePair param : params) builder.add(param.getName(), param.getValue());
+        RequestBody formBody = builder.build();
+        Request request = new Request.Builder()
+                .url(url)
+                .header("User-Agent", UA)
+                .post(formBody)
+                .build();
+        Response response = client.newCall(request).execute();
+        if (!response.isSuccessful()) throw new IOException("Unexpected code " + response);
+
+        return response.body().string();
     }
 
-    private String streamToString(InputStream is) throws IOException {
-        Scanner s = new Scanner(is).useDelimiter("\\A");
-        return s.hasNext() ? s.next() : "";
+    public List<HttpCookie> getCookies() {
+        return manager.getCookieStore().getCookies();
     }
-    public List<Cookie> getCookies() {
-        return httpClient == null?null:httpClient.getCookieStore().getCookies();
+
+    public static class NameValuePair {
+        private String name, value;
+
+        public NameValuePair(String name, String value) {
+            this.name = name;
+            this.value = value;
+        }
+
+        public String getName() {
+            return name;
+        }
+
+
+        public String getValue() {
+            return value;
+        }
     }
 }
