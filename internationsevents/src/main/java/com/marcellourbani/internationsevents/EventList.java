@@ -14,7 +14,7 @@
  */
 package com.marcellourbani.internationsevents;
 
-import android.app.Activity;
+import android.app.ActivityManager;
 import android.support.v4.app.ListFragment;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -24,9 +24,8 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
-import android.support.v7.app.ActionBarActivity;
+import android.support.v4.util.ArrayMap;
 import android.support.v7.app.AppCompatActivity;
-import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -105,14 +104,25 @@ public class EventList extends AppCompatActivity {
         return true;
     }
 
-    void setProgressIndicator(boolean on, AsyncTask t) {
-        if (on) tasks.add(t);
-        else tasks.remove(t);
-        if (refresh != null)
-            if (!tasks.isEmpty())
-                refresh.setActionView(R.layout.actionbar_indeterminate_progress);
-            else
-                refresh.setActionView(null);
+    void updateProgressIndicator(boolean on, AsyncTask t) {
+        boolean isRunning = false;
+        if (t != null) {
+            if (on) tasks.add(t);
+            else tasks.remove(t);
+        }
+        if (!tasks.isEmpty())
+            isRunning = true;
+        else {
+            ActivityManager manager = (ActivityManager) getSystemService(Context.ACTIVITY_SERVICE);
+            for (ActivityManager.RunningServiceInfo service : manager.getRunningServices(Integer.MAX_VALUE)) {
+                if (InService.class.getName().equals(service.service.getClassName())) {
+                    isRunning = true;
+                }
+            }
+        }
+        if (isRunning) refresh.setActionView(R.layout.actionbar_indeterminate_progress);
+        else
+            refresh.setActionView(null);
     }
 
     @Override
@@ -130,8 +140,6 @@ public class EventList extends AppCompatActivity {
                 mFrag.loadevents(true, false);
                 return true;
             case R.id.action_refresh_all:
-                //Intent i = new Intent(InApp.get(),InService.class);
-                //InApp.get().startService(i);
                 mFrag.loadevents(true, true);
                 return true;
             case R.id.action_home:
@@ -168,7 +176,7 @@ public class EventList extends AppCompatActivity {
             showEventActivity(event);
         } else {
             LinkWorker worker = new LinkWorker();
-            EventList.this.setProgressIndicator(true, worker);
+            EventList.this.updateProgressIndicator(true, worker);
             worker.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, event);
         }
     }
@@ -182,7 +190,7 @@ public class EventList extends AppCompatActivity {
 
         @Override
         protected void onPostExecute(Boolean o) {
-            EventList.this.setProgressIndicator(false, this);
+            EventList.this.updateProgressIndicator(false, this);
             if (o)
                 showEventActivity(mEvent);
             else
@@ -199,12 +207,10 @@ public class EventList extends AppCompatActivity {
     }
 
     public static class EventsFragment extends ListFragment {
-        //        protected static InternationsBot mIbot;
-//        private NetWorker mNw;
         private EventAdapter mEventAdapter = null;
+        private ArrayMap<String, InEvent> mEvents = new ArrayMap<>();
 
         public EventsFragment() {
-//            mIbot = InApp.getbot();
         }
 
         @Override
@@ -234,18 +240,18 @@ public class EventList extends AppCompatActivity {
 
         void scrollToNotified() {
             EventList el = ((EventList) getActivity());
-//            if (el != null && el.mNotifiedEvent != null && mEventAdapter != null && mIbot != null) {
-//                InEvent ev = mIbot.mEvents.get(el.mNotifiedEvent);
-//                if (ev != null) {
-//                    int pos = mEventAdapter.getPosition(ev);
-//                    if (pos >= 0) {
-//                        EventsFragment.this.getListView().smoothScrollToPosition(pos);
-//                        getListView().setChoiceMode(ListView.CHOICE_MODE_SINGLE);
-//                        EventsFragment.this.getListView().setSelection(pos);
-//                    }
-//                }
-//                el.mNotifiedEvent = null;
-//            }
+            if (el != null && el.mNotifiedEvent != null && mEventAdapter != null && mEvents != null) {
+                InEvent ev = mEvents.get(el.mNotifiedEvent);
+                if (ev != null) {
+                    int pos = mEventAdapter.getPosition(ev);
+                    if (pos >= 0) {
+                        EventsFragment.this.getListView().smoothScrollToPosition(pos);
+                        getListView().setChoiceMode(ListView.CHOICE_MODE_SINGLE);
+                        EventsFragment.this.getListView().setSelection(pos);
+                    }
+                }
+                el.mNotifiedEvent = null;
+            }
         }
 
         public void rsvp(InEvent event, boolean going) {
@@ -256,124 +262,39 @@ public class EventList extends AppCompatActivity {
             el.startService(i);
         }
 
-//        private class NetWorker extends AsyncTask<Operations, Integer, Boolean> {
-//            InEvent mEvent = null;
-//            boolean fromDB = false;
-//            private Operations mOperation;
-//
-//            @Override
-//            protected void onPostExecute(Boolean o) {
-//                super.onPostExecute(o);
-//                EventList el = ((EventList) getActivity());
-//                if (el != null) el.setProgressIndicator(false, this);
-//                if (o) {
-//                    InCalendar.syncEvents(mIbot.mEvents);
-//                    if (mEventAdapter == null) {
-//                        mEventAdapter = EventAdapter.create(getActivity(), R.layout.fragment_event_list, mIbot.mEvents);
-//                        EventsFragment.this.setListAdapter(mEventAdapter);
-//                    } else mEventAdapter.updateEvents(mIbot.mEvents);
-//                    EventsFragment.this.getListView().invalidateViews();
-//                    if (fromDB) {
-//                        if (mIbot.mEvents.isEmpty() || mIbot.isExpired(InternationsBot.Refreshkeys.EVENTS) && InApp.get().isConnected(true))
-//                            loadevents(true, true);
-//                        else if (mIbot.isExpired(InternationsBot.Refreshkeys.MYEVENTS))
-//                            loadevents(true, false);
-//                    }
-//                    if (mOperation == Operations.RSVPNO || mOperation == Operations.RSVPYES)
-//                        InError.get().showmax(InError.ErrSeverity.INFO);
-//                    else scrollToNotified();
-//                } else {
-//                    InError.get().showmax();
-//                    if (!mIbot.passIsSet() || InError.get().hasType(InError.ErrType.LOGIN)) {
-//                        getActivity().startActivityForResult(new Intent(getActivity(), InPreferences.class), SETPASSWORD);
-//                    }
-//                }
-//            }
-//
-//            @Override
-//            protected void onProgressUpdate(Integer... values) {
-//                super.onProgressUpdate(values);
-//                try {
-//                    if (mEventAdapter != null && EventsFragment.this.getListView() != null) {
-//                        mEventAdapter.updateEvents(mIbot.mEvents);
-//                        EventsFragment.this.getListView().invalidateViews();
-//                    }
-//                } catch (Exception e) {
-//                    Log.d(InternationsBot.INTAG,e.toString());
-//                }
-//            }
-//
-//            void refresh(boolean all) {
-//                mIbot.readMyEvents(true, all ? InternationsBot.ALLEVENTS : "");//will save everything later
-//                publishProgress();
-//                if (all) {
-//                    if (InError.isOk()) mIbot.readMyGroups();
-//                    if (InError.isOk()) mIbot.saveGroups();
-//                    if (InError.isOk()) mIbot.readGroupsEvents();
-//                    if (InError.isOk()) mIbot.saveEvents(true);
-//                } else {
-//                    if (InError.isOk() && mIbot.isExpired(InternationsBot.Refreshkeys.GROUPS)) {
-//                        mIbot.readMyGroups();
-//                        if (InError.isOk()) mIbot.saveGroups();
-//                    }
-//                    if (InError.isOk() && mIbot.isExpired(InternationsBot.Refreshkeys.EVENTS)) {
-//                        mIbot.readGroupsEvents();
-//                        if (InError.isOk()) mIbot.saveEvents(true);
-//                    }
-//                }
-//            }
-//
-//            @Override
-//            protected Boolean doInBackground(Operations... ops) {
-//                mOperation = ops[0];
-//                InError.get().clear();
-//                if (ops[0] == Operations.LOAD) {
-//                    mIbot.loadEvents();
-//                    if (InError.isOk()) mIbot.loadMyGroups();
-//                    fromDB = true;
-//                    return InError.isOk();
-//                }
-//                fromDB = false;
-//                if (mIbot.sign()) {
-//                    if (mIbot.mSigned)
-//                        switch (ops[0]) {
-//                            case REFRESH:
-//                                refresh(false);
-//                                break;
-//                            case REFRESHALL:
-//                                refresh(true);
-//                                break;
-//                            case RSVPNO:
-//                            case RSVPYES:
-//                                boolean newRSVP = ops[0] == Operations.RSVPYES;
-//                                mIbot.rsvp(mEvent, newRSVP);
-//                                if (InError.isOk()) {
-//                                    mIbot.readMyEvents(true, mEvent.mEventId);
-//                                    InEvent subev = mIbot.mEvents.get(mEvent.mEventId);
-//                                    if (subev == null || subev.imGoing() != newRSVP)
-//                                        InError.get().add(InError.ErrSeverity.INFO,
-//                                                InError.ErrType.UNKNOWN,
-//                                                "Error " + (newRSVP ? "subscribing (list full?)" : "unsubscribing") + ", please try from website");
-//                                    else InError.get().add(InError.ErrSeverity.INFO,
-//                                            InError.ErrType.UNKNOWN,
-//                                            "Event " + (newRSVP ? "" : "un") + "subscribed successfully");
-//                                }
-//                                break;
-//                        }
-//                    else
-//                        return false;
-//                }
-//                return true;
-//            }
-//        }
+        public void setEvents(InEvent[] events, InError error) {
+            EventList el = ((EventList) getActivity());
+            error.showmax(InError.ErrSeverity.INFO);
+
+            if (el != null) el.updateProgressIndicator(false, null);
+
+            if (error.getSeverity().ordinal() < InError.ErrSeverity.ERRROR.ordinal()) {
+                ArrayMap<String, InEvent> newEvents = new ArrayMap<>();
+                for (InEvent event : events) {
+                    newEvents.put(event.mEventId, event);
+                    mEvents.put(event.mEventId, event);
+                }
+                InCalendar.syncEvents(newEvents);
+                if (mEventAdapter == null) {
+                    mEventAdapter = EventAdapter.create(getActivity(), R.layout.fragment_event_list, mEvents);
+                    EventsFragment.this.setListAdapter(mEventAdapter);
+                } else mEventAdapter.updateEvents(mEvents);
+            }
+        }
+
     }
 
     private class DataUpdateReceiver extends BroadcastReceiver {
         @Override
         public void onReceive(Context context, Intent intent) {
-            if (intent.getAction().equals(InService.RELOAD_EVENTS)) {
-                mFrag.loadevents(false, false);
-            }
+            if (InService.RELOAD_EVENTS.equals(intent.getAction())) {
+                InError.get().readFromIntent(intent);
+                InEvent[] events = (InEvent[]) intent.getParcelableArrayExtra(InService.EVENTLIST);
+                mFrag.setEvents(events, InError.get());
+                updateProgressIndicator(false, null);
+            }else if (InService.SERVICE_STATUS_CHANGE.equals(intent.getAction())){
+                updateProgressIndicator(intent.getBooleanExtra(InService.ISRUNNING,false),null);
+            };
         }
     }
 }

@@ -17,11 +17,11 @@ package com.marcellourbani.internationsevents;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.support.v4.util.ArrayMap;
 import android.util.Log;
 
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
@@ -38,14 +38,13 @@ import java.util.SimpleTimeZone;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class InEvent {
+public class InEvent implements Parcelable{
     private static final Pattern MACTPATTERN = Pattern.compile("activity-group/([0-9]+)/activity/([0-9]+)");
     private static final Pattern MEVENTPATTERN = Pattern.compile("/events?/.*[^0-9]([0-9]+)$");
     private static final DateFormat MYEVENTDF = new SimpleDateFormat("dd MMM kk:mm", Locale.US);
     private static final DateFormat MYEVENTDF_NOTIME = new SimpleDateFormat("MMM dd", Locale.US);
-    private static final DateFormat DETAILDF = new SimpleDateFormat("MMM dd,yyyy,KK:mm aa", Locale.US);
-    private static final DateFormat DETAILDFNEW = new SimpleDateFormat("dd MMM yyyy HH:mm", Locale.US);
     private static final DateFormat GROPUEVENTDF = new SimpleDateFormat("dd MMMM yyyy", Locale.US);
+    private static final int INEVENT = 2342;
     String mGroupId = null;
     String mEventId;
     String mIconUrl, mTitle, mLocation, mEventUrl, mGroup;
@@ -55,6 +54,33 @@ public class InEvent {
     GregorianCalendar mStart, mStop;
     private boolean mNew;
     long mTimelimit = 0L;
+
+    protected InEvent(Parcel in) {
+        mGroupId = in.readString();
+        mEventId = in.readString();
+        mIconUrl = in.readString();
+        mTitle = in.readString();
+        mLocation = in.readString();
+        mEventUrl = in.readString();
+        mGroup = in.readString();
+        mMine = in.readByte() != 0;
+        mSaved = in.readByte() != 0;
+        mAllDay = in.readByte() != 0;
+        mNew = in.readByte() != 0;
+        mTimelimit = in.readLong();
+    }
+
+    public static final Creator<InEvent> CREATOR = new Creator<InEvent>() {
+        @Override
+        public InEvent createFromParcel(Parcel in) {
+            return new InEvent(in);
+        }
+
+        @Override
+        public InEvent[] newArray(int size) {
+            return new InEvent[size];
+        }
+    };
 
     public boolean isNew() {
         return mNew;
@@ -127,31 +153,20 @@ public class InEvent {
     public void refine(String event) throws ParseException {
             String[] lines = event.split("\n");
             boolean active=false;
-            for(int i=0;i<lines.length;i++){
-                if (lines[i].equals("BEGIN:VEVENT")){
-                    active = true;
-                    continue;
-                }
-                if(!active) continue;
-                if(lines[i].equals("END:VEVENT"))break;
-                String[] kv = lines[i].split(":", 2);
-                if(kv[0].equals("LOCATION"))
-                    mLocation=kv[1].replaceAll("\\\\([^\\\\])","$1");
-                if(kv[0].indexOf("DTSTART")==0)mStart=tsToCal(kv[1]);
-                if(kv[0].indexOf("DTEND")==0)mStop=tsToCal(kv[1]);
+        for (String line : lines) {
+            if (line.equals("BEGIN:VEVENT")) {
+                active = true;
+                continue;
             }
-
-    }
-
-    private void setEventTimeDetail(GregorianCalendar cal, String datetext) {
-        try {
-            cal.setTime(DETAILDFNEW.parse(datetext));
-        } catch (ParseException e) {
-            try {
-                cal.setTime(DETAILDF.parse(datetext));
-            } catch (ParseException e1) {
-            }
+            if (!active) continue;
+            if (line.equals("END:VEVENT")) break;
+            String[] kv = line.split(":", 2);
+            if (kv[0].equals("LOCATION"))
+                mLocation = kv[1].replaceAll("\\\\([^\\\\])", "$1");
+            if (kv[0].indexOf("DTSTART") == 0) mStart = tsToCal(kv[1]);
+            if (kv[0].indexOf("DTEND") == 0) mStop = tsToCal(kv[1]);
         }
+
     }
 
     private GregorianCalendar tsToCal(String ts) {
@@ -168,17 +183,36 @@ public class InEvent {
 
     public boolean isExpired() {
         long offset = 3600000 * (mAllDay ? 36 : 24);
-        long limit = new Date().getTime() - 36 * 3600000;//36 hours ago;
         return mStart.getTime().getTime() < new Date().getTime() - offset;
     }
 
     public String getRefineUrl() {
         if (isEvent()) {
             int idx = mEventUrl.indexOf("details");
-            String s = mEventUrl.substring(0,idx)+"ical/"+mEventId;
-            return s;
+            return mEventUrl.substring(0,idx)+"ical/"+mEventId;
         } else
             return mEventUrl+"/ical/";
+    }
+
+    @Override
+    public int describeContents() {
+        return INEVENT;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeString(mGroupId);
+        dest.writeString(mEventId);
+        dest.writeString(mIconUrl);
+        dest.writeString(mTitle);
+        dest.writeString(mLocation);
+        dest.writeString(mEventUrl);
+        dest.writeString(mGroup);
+        dest.writeByte((byte) (mMine ? 1 : 0));
+        dest.writeByte((byte) (mSaved ? 1 : 0));
+        dest.writeByte((byte) (mAllDay ? 1 : 0));
+        dest.writeByte((byte) (mNew ? 1 : 0));
+        dest.writeLong(mTimelimit);
     }
 
     private enum SubscStatus {
@@ -225,7 +259,7 @@ public class InEvent {
             }
         }
 
-        public static SubscStatus decodeCalendarElement(Element element, InEvent event) {
+        public static SubscStatus decodeCalendarElement(Element element) {
             //do we have an attending section?
             Elements tmp = element.select("span.t-attending-message");
             if (tmp != null && tmp.size() > 0) return GOING;
@@ -332,7 +366,7 @@ public class InEvent {
             if (tmp != null && tmp.size() > 0) {
                 mGroup = tmp.get(0).text();
             }
-            mRsvp = SubscStatus.decodeCalendarElement(e, this);
+            mRsvp = SubscStatus.decodeCalendarElement(e);
             mLocation = "";
             tmp = e.select("span.teaserRow__date");
             String startd = tmp.get(0).text();

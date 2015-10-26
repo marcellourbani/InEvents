@@ -31,22 +31,24 @@ import android.support.v4.app.TaskStackBuilder;
 
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Calendar;
+
 
 public class InService extends IntentService implements InAsyncTask.Listener {
     public static final String RELOAD_EVENTS = "INEVENTS_RELOAD";
+    public static final String SERVICE_STATUS_CHANGE = "INEVENTS_SERVSTATUS";
     public static final String ACTION_REFRESH="INEVENTS_REFRESH_MINE";
     public static final String ACTION_SUBSCRIBE="INEVENTS_SUBSCRIBE";
     public static final String ACTION_UNSUBSCRIBE="INEVENTS_UNSUBSCRIBE";
     public static final String ACTION_REFRESH_ALL="INEVENTS_REFRESH_ALL";
     public static final String EVENTID = "INEVENTS_EVENTID";
     public static final String ACTION_LOAD = "INEVENTS_LOAD";
+    public static final String EVENTLIST = "INEVENTS_EVENTLIST";
+    public static final String ISRUNNING = "INEVENTS_ISRUNNING";
 
     final static DateFormat DATEFORMAT = new SimpleDateFormat("dd.MM.yy kk:mm"),
             ALLLDAYDF = new SimpleDateFormat("dd.MM.yy");
-
-    SharedPreferences prefs;
-    private InternationsBot bot;
 
     public InService() {
         super("InService");
@@ -57,7 +59,7 @@ public class InService extends IntentService implements InAsyncTask.Listener {
     protected void onHandleIntent(Intent intent) {
         if (InApp.get().isConnected())
             new InAsyncTask(intent).setListener(this).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
-        else if(intent.getAction()==ACTION_REFRESH_ALL){
+        else if(ACTION_REFRESH_ALL.equals(intent.getAction())){
             InReceiver.completeWakefulIntent(intent);
             retry();
         }
@@ -65,17 +67,17 @@ public class InService extends IntentService implements InAsyncTask.Listener {
 
     private void retry() {
         AlarmManager alarm = (AlarmManager) InApp.get().getSystemService(Context.ALARM_SERVICE);
-        PendingIntent pintent = InReceiver.getIntent(false);
+        PendingIntent pintent = InReceiver.getIntent(false,true);
         alarm.set(AlarmManager.RTC_WAKEUP, Calendar.getInstance().getTimeInMillis() + 600000, pintent);//10 minutes
     }
 
     static void schedule(boolean reschedule,boolean startNow) {
         AlarmManager alarm = (AlarmManager) InApp.get().getSystemService(Context.ALARM_SERVICE);
 
-        PendingIntent pintent = InReceiver.getIntent(true);
+        PendingIntent pintent = InReceiver.getIntent(true,false);
 
         if (pintent == null) {
-            pintent = InReceiver.getIntent(false);
+            pintent = InReceiver.getIntent(false,false);
         } else {
             if (reschedule)
                 alarm.cancel(pintent);
@@ -93,11 +95,12 @@ public class InService extends IntentService implements InAsyncTask.Listener {
         return 3600000 * (sprefs == null ? 6 : Integer.parseInt(sprefs.getString("pr_refresh_interval", "6")));
     }
 
-    private void sendNotifications() {
+    private void sendNotifications(ArrayList<InEvent> events) {
+        SharedPreferences prefs = PreferenceManager.getDefaultSharedPreferences(this);
         if (!prefs.getBoolean("pr_notify_new", true)) return;
         NotificationManager mNotificationManager =
                 (NotificationManager) getSystemService(Context.NOTIFICATION_SERVICE);
-        for (InEvent e : bot.getEvents()) {
+        for (InEvent e : events) {
             if (e.isNew() && e.mEventId != null) {
                 String title = (e.isEvent() ? "New Event" : "New Activity") + e.mTitle;
                 String text = e.mAllDay ? ALLLDAYDF.format(e.mStart.getTime()) : DATEFORMAT.format(e.mStart.getTime());
@@ -129,14 +132,19 @@ public class InService extends IntentService implements InAsyncTask.Listener {
     }
 
     @Override
-    public void onCompleted(Intent intent) {
-        sendNotifications();
+    public void onCompleted(Intent intent,ArrayList<InEvent> events,InError error) {
+        sendNotifications(events);
         InReceiver.completeWakefulIntent(intent);
-        sendBroadcast(new Intent(InService.RELOAD_EVENTS));
+        Intent broadcast=new Intent(InService.RELOAD_EVENTS)
+                .putParcelableArrayListExtra(EVENTLIST, events);
+        InError.get().writeToIntent(broadcast);
+        sendBroadcast(broadcast);
     }
 
     @Override
-    public void onFailed(Intent intent) {
+    public void onFailed(Intent intent, InError error) {
         retry();
+        Intent broadcast=new Intent(InService.RELOAD_EVENTS).putExtra(ISRUNNING,false);
+        sendBroadcast(broadcast);
     }
 }

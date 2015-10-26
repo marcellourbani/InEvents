@@ -22,6 +22,7 @@ import android.support.v4.content.WakefulBroadcastReceiver;
 
 public class InReceiver extends WakefulBroadcastReceiver {
     private static final int MYREQUESTCODE = 123;
+    private static final int MYRETRYCODE = 234;
 
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -35,9 +36,11 @@ public class InReceiver extends WakefulBroadcastReceiver {
         }
     }
 
-    public static PendingIntent getIntent(boolean scheduled) {
+    public static PendingIntent getIntent(boolean scheduled,boolean retry) {
         Intent intent = new Intent(InApp.get(), InReceiver.class);
-        PendingIntent pintent = PendingIntent.getBroadcast(InApp.get(), MYREQUESTCODE, intent, scheduled ? PendingIntent.FLAG_NO_CREATE : 0);
+        int code = retry?MYRETRYCODE:MYREQUESTCODE;
+        int flags =scheduled ? PendingIntent.FLAG_NO_CREATE : 0;
+        PendingIntent pintent = PendingIntent.getBroadcast(InApp.get(), code, intent,flags );
         return pintent;
     }
 }
