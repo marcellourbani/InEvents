@@ -24,6 +24,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.v4.app.NotificationCompat;
 import android.support.v4.app.TaskStackBuilder;
@@ -137,6 +138,9 @@ public class InService extends IntentService implements InAsyncTask.Listener {
         InReceiver.completeWakefulIntent(intent);
         Intent broadcast=new Intent(InService.RELOAD_EVENTS)
                 .putParcelableArrayListExtra(EVENTLIST, events);
+        Bundle b= new Bundle();
+        b.putParcelableArrayList(EVENTLIST,events);
+        broadcast.putExtra(EVENTLIST,b);
         InError.get().writeToIntent(broadcast);
         sendBroadcast(broadcast);
     }

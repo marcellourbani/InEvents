@@ -63,7 +63,6 @@ public class EventList extends AppCompatActivity {
             mNotifiedEvent = getIntent().getStringExtra(InApp.NOTIFIEDEVENT);
             mFrag = new EventsFragment();
             mFrag.setRetainInstance(true);
-            mFrag.loadevents(false, false);
             getSupportFragmentManager().beginTransaction()
                     .add(R.id.container, mFrag, EVFRAG)
                     .commit();
@@ -209,6 +208,7 @@ public class EventList extends AppCompatActivity {
     public static class EventsFragment extends ListFragment {
         private EventAdapter mEventAdapter = null;
         private ArrayMap<String, InEvent> mEvents = new ArrayMap<>();
+        private boolean loaded = false;
 
         public EventsFragment() {
         }
@@ -216,7 +216,12 @@ public class EventList extends AppCompatActivity {
         @Override
         public void onAttach(Context c) {
             super.onAttach(c);
-            scrollToNotified();
+            if (loaded)
+                scrollToNotified();
+            else {
+                loaded = true;
+                loadevents(false, false);
+            }
         }
 
         @Override
@@ -262,7 +267,7 @@ public class EventList extends AppCompatActivity {
             el.startService(i);
         }
 
-        public void setEvents(InEvent[] events, InError error) {
+        public void setEvents(ArrayList<InEvent> events, InError error) {
             EventList el = ((EventList) getActivity());
             error.showmax(InError.ErrSeverity.INFO);
 
@@ -270,15 +275,18 @@ public class EventList extends AppCompatActivity {
 
             if (error.getSeverity().ordinal() < InError.ErrSeverity.ERRROR.ordinal()) {
                 ArrayMap<String, InEvent> newEvents = new ArrayMap<>();
-                for (InEvent event : events) {
-                    newEvents.put(event.mEventId, event);
-                    mEvents.put(event.mEventId, event);
+                if (events != null) {
+                    for (InEvent event : events) {
+                        newEvents.put(event.mEventId, event);
+                        mEvents.put(event.mEventId, event);
+                    }
+                    InCalendar.syncEvents(newEvents);
+
+                    if (mEventAdapter == null) {
+                        mEventAdapter = EventAdapter.create(getActivity(), R.layout.fragment_event_list, mEvents);
+                        EventsFragment.this.setListAdapter(mEventAdapter);
+                    } else mEventAdapter.updateEvents(mEvents);
                 }
-                InCalendar.syncEvents(newEvents);
-                if (mEventAdapter == null) {
-                    mEventAdapter = EventAdapter.create(getActivity(), R.layout.fragment_event_list, mEvents);
-                    EventsFragment.this.setListAdapter(mEventAdapter);
-                } else mEventAdapter.updateEvents(mEvents);
             }
         }
 
@@ -289,12 +297,13 @@ public class EventList extends AppCompatActivity {
         public void onReceive(Context context, Intent intent) {
             if (InService.RELOAD_EVENTS.equals(intent.getAction())) {
                 InError.get().readFromIntent(intent);
-                InEvent[] events = (InEvent[]) intent.getParcelableArrayExtra(InService.EVENTLIST);
+                Bundle b = intent.getBundleExtra(InService.EVENTLIST);
+                ArrayList<InEvent> events = b.getParcelableArrayList(InService.EVENTLIST);
                 mFrag.setEvents(events, InError.get());
-                updateProgressIndicator(false, null);
-            }else if (InService.SERVICE_STATUS_CHANGE.equals(intent.getAction())){
-                updateProgressIndicator(intent.getBooleanExtra(InService.ISRUNNING,false),null);
-            };
+            } else if (InService.SERVICE_STATUS_CHANGE.equals(intent.getAction())) {
+                updateProgressIndicator(intent.getBooleanExtra(InService.ISRUNNING, false), null);
+            }
+            ;
         }
     }
 }

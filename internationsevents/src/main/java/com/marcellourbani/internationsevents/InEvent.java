@@ -68,6 +68,14 @@ public class InEvent implements Parcelable{
         mAllDay = in.readByte() != 0;
         mNew = in.readByte() != 0;
         mTimelimit = in.readLong();
+        mStart = new GregorianCalendar();
+        mStart.setTimeInMillis(in.readLong());
+
+        long time = in.readLong();
+        if (time > 0) {
+            mStop = new GregorianCalendar();
+            mStop.setTimeInMillis(time);
+        }
     }
 
     public static final Creator<InEvent> CREATOR = new Creator<InEvent>() {
@@ -213,6 +221,8 @@ public class InEvent implements Parcelable{
         dest.writeByte((byte) (mAllDay ? 1 : 0));
         dest.writeByte((byte) (mNew ? 1 : 0));
         dest.writeLong(mTimelimit);
+        dest.writeLong(mStart.getTimeInMillis());
+        dest.writeLong(mStop==null?0:mStop.getTimeInMillis());
     }
 
     private enum SubscStatus {

@@ -39,7 +39,8 @@ public class InError {
         maxErr=i.getParcelableExtra(MAXERR);
         ErrorItem[] newerrors = (ErrorItem[]) i.getParcelableArrayExtra(ERRORS);
         errors.clear();
-        Collections.addAll(errors, newerrors);
+        if(newerrors!=null)
+          Collections.addAll(errors, newerrors);
     }
 
 
