@@ -33,10 +33,18 @@ import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 
-public class InService extends IntentService {
+public class InService extends IntentService implements InAsyncTask.Listener {
     public static final String RELOAD_EVENTS = "INEVENTS_RELOAD";
+    public static final String ACTION_REFRESH="INEVENTS_REFRESH_MINE";
+    public static final String ACTION_SUBSCRIBE="INEVENTS_SUBSCRIBE";
+    public static final String ACTION_UNSUBSCRIBE="INEVENTS_UNSUBSCRIBE";
+    public static final String ACTION_REFRESH_ALL="INEVENTS_REFRESH_ALL";
+    public static final String EVENTID = "INEVENTS_EVENTID";
+    public static final String ACTION_LOAD = "INEVENTS_LOAD";
+
     final static DateFormat DATEFORMAT = new SimpleDateFormat("dd.MM.yy kk:mm"),
             ALLLDAYDF = new SimpleDateFormat("dd.MM.yy");
+
     SharedPreferences prefs;
     private InternationsBot bot;
 
@@ -48,8 +56,8 @@ public class InService extends IntentService {
     @Override
     protected void onHandleIntent(Intent intent) {
         if (InApp.get().isConnected())
-            new RefreshTask(intent).execute();
-        else {
+            new InAsyncTask(intent).setListener(this).executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR);
+        else if(intent.getAction()==ACTION_REFRESH_ALL){
             InReceiver.completeWakefulIntent(intent);
             retry();
         }
@@ -57,67 +65,32 @@ public class InService extends IntentService {
 
     private void retry() {
         AlarmManager alarm = (AlarmManager) InApp.get().getSystemService(Context.ALARM_SERVICE);
-        Intent intent = new Intent(InApp.get(), InReceiver.class);
-        PendingIntent pintent = PendingIntent.getService(InApp.get(), 0, intent, 0);
+        PendingIntent pintent = InReceiver.getIntent(false);
         alarm.set(AlarmManager.RTC_WAKEUP, Calendar.getInstance().getTimeInMillis() + 600000, pintent);//10 minutes
     }
 
-    static void schedule(boolean reschedule) {
-        long period = getPeriod();
-        long start = Calendar.getInstance().getTimeInMillis() + period;
+    static void schedule(boolean reschedule,boolean startNow) {
         AlarmManager alarm = (AlarmManager) InApp.get().getSystemService(Context.ALARM_SERVICE);
-        Intent intent = new Intent(InApp.get(), InReceiver.class);
-        PendingIntent pintent = PendingIntent.getBroadcast(InApp.get(), 0, intent, PendingIntent.FLAG_NO_CREATE);
+
+        PendingIntent pintent = InReceiver.getIntent(true);
+
         if (pintent == null) {
-            pintent = PendingIntent.getBroadcast(InApp.get(), 0, intent, 0);//PendingIntent.getService(InApp.get(), 0, intent, 0);
+            pintent = InReceiver.getIntent(false);
         } else {
             if (reschedule)
                 alarm.cancel(pintent);
-            else return;
+            else //already scheduled, no reschedule request
+                return;
         }
-        alarm.setInexactRepeating(AlarmManager.RTC_WAKEUP, start, period, pintent);
+        long period = getPeriod();
+        long start = Calendar.getInstance().getTimeInMillis() + (startNow?0:period);
+        if(period>0)
+            alarm.setInexactRepeating(AlarmManager.RTC_WAKEUP, start, period, pintent);
     }
 
     private static long getPeriod() {
         SharedPreferences sprefs = PreferenceManager.getDefaultSharedPreferences(InApp.get());
         return 3600000 * (sprefs == null ? 6 : Integer.parseInt(sprefs.getString("pr_refresh_interval", "6")));
-    }
-
-    private class RefreshTask extends AsyncTask<String, Integer, Boolean> {
-        private Intent mIntent;
-        public RefreshTask(Intent i){
-            mIntent = i;
-        }
-        @Override
-        protected Boolean doInBackground(String... strings) {
-            if (prefs == null) prefs = PreferenceManager.getDefaultSharedPreferences(InApp.get());
-            bot = new InternationsBot(prefs);
-            bot.clearold();
-            bot.loadEvents();
-            bot.loadMyGroups();
-            if (!bot.sign()) {
-                if (bot.passIsSet()) retry();
-                return false;
-            }
-            InError.get().clear();
-            bot.readMyEvents(true,"");
-            if (InError.isOk()) InCalendar.syncEvents(bot.mEvents);
-            if (InError.isOk() && bot.isExpired(InternationsBot.Refreshkeys.GROUPS)) {
-                bot.readMyGroups();
-                if (InError.isOk()) bot.saveGroups();
-            }
-            if (InError.isOk()) bot.readGroupsEvents();
-            if (InError.isOk()) bot.saveEvents(true);
-            return InError.isOk();
-        }
-
-        @Override
-        protected void onPostExecute(Boolean aBoolean) {
-            super.onPostExecute(aBoolean);
-            sendNotifications();
-            InReceiver.completeWakefulIntent(mIntent);
-            sendBroadcast(new Intent(RELOAD_EVENTS));
-        }
     }
 
     private void sendNotifications() {
@@ -153,5 +126,17 @@ public class InService extends IntentService {
                 mNotificationManager.notify(Integer.parseInt(e.mEventId), mBuilder.build());
             }
         }
+    }
+
+    @Override
+    public void onCompleted(Intent intent) {
+        sendNotifications();
+        InReceiver.completeWakefulIntent(intent);
+        sendBroadcast(new Intent(InService.RELOAD_EVENTS));
+    }
+
+    @Override
+    public void onFailed(Intent intent) {
+        retry();
     }
 }

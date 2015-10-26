@@ -34,7 +34,7 @@ public class InPreferences extends Activity {
         @Override
         public void onSharedPreferenceChanged(SharedPreferences prefs, String s) {
             if(s!=null&&s.equals("pr_refresh_interval"))
-                InService.schedule(true);
+                InService.schedule(true,false);
         }
     }
     public static class PrefsFragment extends PreferenceFragment {

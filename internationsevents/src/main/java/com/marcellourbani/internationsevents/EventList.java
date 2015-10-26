@@ -68,7 +68,7 @@ public class EventList extends AppCompatActivity {
             getSupportFragmentManager().beginTransaction()
                     .add(R.id.container, mFrag, EVFRAG)
                     .commit();
-            InService.schedule(false);
+            InService.schedule(false, true);
         }
     }
 
@@ -168,7 +168,7 @@ public class EventList extends AppCompatActivity {
             showEventActivity(event);
         } else {
             LinkWorker worker = new LinkWorker();
-            EventList.this.setProgressIndicator(true,worker);
+            EventList.this.setProgressIndicator(true, worker);
             worker.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, event);
         }
     }
@@ -182,7 +182,7 @@ public class EventList extends AppCompatActivity {
 
         @Override
         protected void onPostExecute(Boolean o) {
-            EventList.this.setProgressIndicator(false,this);
+            EventList.this.setProgressIndicator(false, this);
             if (o)
                 showEventActivity(mEvent);
             else
@@ -199,12 +199,12 @@ public class EventList extends AppCompatActivity {
     }
 
     public static class EventsFragment extends ListFragment {
-        protected static InternationsBot mIbot;
-        private NetWorker mNw;
+        //        protected static InternationsBot mIbot;
+//        private NetWorker mNw;
         private EventAdapter mEventAdapter = null;
 
         public EventsFragment() {
-            mIbot = InApp.getbot();
+//            mIbot = InApp.getbot();
         }
 
         @Override
@@ -223,151 +223,149 @@ public class EventList extends AppCompatActivity {
 
         public void loadevents(boolean refresh, boolean all) {
             EventList el = ((EventList) getActivity());
-            mNw = new NetWorker();
-            if (el != null) el.setProgressIndicator(true, mNw);
+            Intent i = new Intent(el, InService.class);
+
             if (refresh) {
-                if (all)
-                    mNw.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, Operations.REFRESHALL);
-                else
-                    mNw.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, Operations.REFRESH);
-            } else mNw.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR, Operations.LOAD);
+                if (all) i.setAction(InService.ACTION_REFRESH_ALL);
+                else i.setAction(InService.ACTION_REFRESH);
+            } else i.setAction(InService.ACTION_LOAD);
+            el.startService(i);
         }
 
         void scrollToNotified() {
             EventList el = ((EventList) getActivity());
-            if (el != null && el.mNotifiedEvent != null && mEventAdapter != null && mIbot != null) {
-                InEvent ev = mIbot.mEvents.get(el.mNotifiedEvent);
-                if (ev != null) {
-                    int pos = mEventAdapter.getPosition(ev);
-                    if (pos >= 0) {
-                        EventsFragment.this.getListView().smoothScrollToPosition(pos);
-                        getListView().setChoiceMode(ListView.CHOICE_MODE_SINGLE);
-                        EventsFragment.this.getListView().setSelection(pos);
-                    }
-                }
-                el.mNotifiedEvent = null;
-            }
+//            if (el != null && el.mNotifiedEvent != null && mEventAdapter != null && mIbot != null) {
+//                InEvent ev = mIbot.mEvents.get(el.mNotifiedEvent);
+//                if (ev != null) {
+//                    int pos = mEventAdapter.getPosition(ev);
+//                    if (pos >= 0) {
+//                        EventsFragment.this.getListView().smoothScrollToPosition(pos);
+//                        getListView().setChoiceMode(ListView.CHOICE_MODE_SINGLE);
+//                        EventsFragment.this.getListView().setSelection(pos);
+//                    }
+//                }
+//                el.mNotifiedEvent = null;
+//            }
         }
 
         public void rsvp(InEvent event, boolean going) {
             EventList el = (EventList) getActivity();
-            NetWorker nw = new NetWorker();
-            if (el != null) el.setProgressIndicator(true, nw);
-            nw.mEvent = event;
-            nw.executeOnExecutor(AsyncTask.THREAD_POOL_EXECUTOR,
-                    going ? Operations.RSVPYES : Operations.RSVPNO);
+            Intent i = new Intent(el, InService.class);
+            i.setAction(going ? InService.ACTION_SUBSCRIBE : InService.ACTION_UNSUBSCRIBE);
+            i.putExtra(InService.EVENTID, event.mEventId);
+            el.startService(i);
         }
 
-        private class NetWorker extends AsyncTask<Operations, Integer, Boolean> {
-            InEvent mEvent = null;
-            boolean fromDB = false;
-            private Operations mOperation;
-
-            @Override
-            protected void onPostExecute(Boolean o) {
-                super.onPostExecute(o);
-                EventList el = ((EventList) getActivity());
-                if (el != null) el.setProgressIndicator(false, this);
-                if (o) {
-                    InCalendar.syncEvents(mIbot.mEvents);
-                    if (mEventAdapter == null) {
-                        mEventAdapter = EventAdapter.create(getActivity(), R.layout.fragment_event_list, mIbot.mEvents);
-                        EventsFragment.this.setListAdapter(mEventAdapter);
-                    } else mEventAdapter.updateEvents(mIbot.mEvents);
-                    EventsFragment.this.getListView().invalidateViews();
-                    if (fromDB) {
-                        if (mIbot.mEvents.isEmpty() || mIbot.isExpired(InternationsBot.Refreshkeys.EVENTS) && InApp.get().isConnected(true))
-                            loadevents(true, true);
-                        else if (mIbot.isExpired(InternationsBot.Refreshkeys.MYEVENTS))
-                            loadevents(true, false);
-                    }
-                    if (mOperation == Operations.RSVPNO || mOperation == Operations.RSVPYES)
-                        InError.get().showmax(InError.ErrSeverity.INFO);
-                    else scrollToNotified();
-                } else {
-                    InError.get().showmax();
-                    if (!mIbot.passIsSet() || InError.get().hasType(InError.ErrType.LOGIN)) {
-                        getActivity().startActivityForResult(new Intent(getActivity(), InPreferences.class), SETPASSWORD);
-                    }
-                }
-            }
-
-            @Override
-            protected void onProgressUpdate(Integer... values) {
-                super.onProgressUpdate(values);
-                try {
-                    if (mEventAdapter != null && EventsFragment.this.getListView() != null) {
-                        mEventAdapter.updateEvents(mIbot.mEvents);
-                        EventsFragment.this.getListView().invalidateViews();
-                    }
-                } catch (Exception e) {
-                    Log.d(InternationsBot.INTAG,e.toString());
-                }
-            }
-
-            void refresh(boolean all) {
-                mIbot.readMyEvents(true, all ? InternationsBot.ALLEVENTS : "");//will save everything later
-                publishProgress();
-                if (all) {
-                    if (InError.isOk()) mIbot.readMyGroups();
-                    if (InError.isOk()) mIbot.saveGroups();
-                    if (InError.isOk()) mIbot.readGroupsEvents();
-                    if (InError.isOk()) mIbot.saveEvents(true);
-                } else {
-                    if (InError.isOk() && mIbot.isExpired(InternationsBot.Refreshkeys.GROUPS)) {
-                        mIbot.readMyGroups();
-                        if (InError.isOk()) mIbot.saveGroups();
-                    }
-                    if (InError.isOk() && mIbot.isExpired(InternationsBot.Refreshkeys.EVENTS)) {
-                        mIbot.readGroupsEvents();
-                        if (InError.isOk()) mIbot.saveEvents(true);
-                    }
-                }
-            }
-
-            @Override
-            protected Boolean doInBackground(Operations... ops) {
-                mOperation = ops[0];
-                InError.get().clear();
-                if (ops[0] == Operations.LOAD) {
-                    mIbot.loadEvents();
-                    if (InError.isOk()) mIbot.loadMyGroups();
-                    fromDB = true;
-                    return InError.isOk();
-                }
-                fromDB = false;
-                if (mIbot.sign()) {
-                    if (mIbot.mSigned)
-                        switch (ops[0]) {
-                            case REFRESH:
-                                refresh(false);
-                                break;
-                            case REFRESHALL:
-                                refresh(true);
-                                break;
-                            case RSVPNO:
-                            case RSVPYES:
-                                boolean newRSVP = ops[0] == Operations.RSVPYES;
-                                mIbot.rsvp(mEvent, newRSVP);
-                                if (InError.isOk()) {
-                                    mIbot.readMyEvents(true, mEvent.mEventId);
-                                    InEvent subev = mIbot.mEvents.get(mEvent.mEventId);
-                                    if (subev == null || subev.imGoing() != newRSVP)
-                                        InError.get().add(InError.ErrSeverity.INFO,
-                                                InError.ErrType.UNKNOWN,
-                                                "Error " + (newRSVP ? "subscribing (list full?)" : "unsubscribing") + ", please try from website");
-                                    else InError.get().add(InError.ErrSeverity.INFO,
-                                            InError.ErrType.UNKNOWN,
-                                            "Event " + (newRSVP ? "" : "un") + "subscribed successfully");
-                                }
-                                break;
-                        }
-                    else
-                        return false;
-                }
-                return true;
-            }
-        }
+//        private class NetWorker extends AsyncTask<Operations, Integer, Boolean> {
+//            InEvent mEvent = null;
+//            boolean fromDB = false;
+//            private Operations mOperation;
+//
+//            @Override
+//            protected void onPostExecute(Boolean o) {
+//                super.onPostExecute(o);
+//                EventList el = ((EventList) getActivity());
+//                if (el != null) el.setProgressIndicator(false, this);
+//                if (o) {
+//                    InCalendar.syncEvents(mIbot.mEvents);
+//                    if (mEventAdapter == null) {
+//                        mEventAdapter = EventAdapter.create(getActivity(), R.layout.fragment_event_list, mIbot.mEvents);
+//                        EventsFragment.this.setListAdapter(mEventAdapter);
+//                    } else mEventAdapter.updateEvents(mIbot.mEvents);
+//                    EventsFragment.this.getListView().invalidateViews();
+//                    if (fromDB) {
+//                        if (mIbot.mEvents.isEmpty() || mIbot.isExpired(InternationsBot.Refreshkeys.EVENTS) && InApp.get().isConnected(true))
+//                            loadevents(true, true);
+//                        else if (mIbot.isExpired(InternationsBot.Refreshkeys.MYEVENTS))
+//                            loadevents(true, false);
+//                    }
+//                    if (mOperation == Operations.RSVPNO || mOperation == Operations.RSVPYES)
+//                        InError.get().showmax(InError.ErrSeverity.INFO);
+//                    else scrollToNotified();
+//                } else {
+//                    InError.get().showmax();
+//                    if (!mIbot.passIsSet() || InError.get().hasType(InError.ErrType.LOGIN)) {
+//                        getActivity().startActivityForResult(new Intent(getActivity(), InPreferences.class), SETPASSWORD);
+//                    }
+//                }
+//            }
+//
+//            @Override
+//            protected void onProgressUpdate(Integer... values) {
+//                super.onProgressUpdate(values);
+//                try {
+//                    if (mEventAdapter != null && EventsFragment.this.getListView() != null) {
+//                        mEventAdapter.updateEvents(mIbot.mEvents);
+//                        EventsFragment.this.getListView().invalidateViews();
+//                    }
+//                } catch (Exception e) {
+//                    Log.d(InternationsBot.INTAG,e.toString());
+//                }
+//            }
+//
+//            void refresh(boolean all) {
+//                mIbot.readMyEvents(true, all ? InternationsBot.ALLEVENTS : "");//will save everything later
+//                publishProgress();
+//                if (all) {
+//                    if (InError.isOk()) mIbot.readMyGroups();
+//                    if (InError.isOk()) mIbot.saveGroups();
+//                    if (InError.isOk()) mIbot.readGroupsEvents();
+//                    if (InError.isOk()) mIbot.saveEvents(true);
+//                } else {
+//                    if (InError.isOk() && mIbot.isExpired(InternationsBot.Refreshkeys.GROUPS)) {
+//                        mIbot.readMyGroups();
+//                        if (InError.isOk()) mIbot.saveGroups();
+//                    }
+//                    if (InError.isOk() && mIbot.isExpired(InternationsBot.Refreshkeys.EVENTS)) {
+//                        mIbot.readGroupsEvents();
+//                        if (InError.isOk()) mIbot.saveEvents(true);
+//                    }
+//                }
+//            }
+//
+//            @Override
+//            protected Boolean doInBackground(Operations... ops) {
+//                mOperation = ops[0];
+//                InError.get().clear();
+//                if (ops[0] == Operations.LOAD) {
+//                    mIbot.loadEvents();
+//                    if (InError.isOk()) mIbot.loadMyGroups();
+//                    fromDB = true;
+//                    return InError.isOk();
+//                }
+//                fromDB = false;
+//                if (mIbot.sign()) {
+//                    if (mIbot.mSigned)
+//                        switch (ops[0]) {
+//                            case REFRESH:
+//                                refresh(false);
+//                                break;
+//                            case REFRESHALL:
+//                                refresh(true);
+//                                break;
+//                            case RSVPNO:
+//                            case RSVPYES:
+//                                boolean newRSVP = ops[0] == Operations.RSVPYES;
+//                                mIbot.rsvp(mEvent, newRSVP);
+//                                if (InError.isOk()) {
+//                                    mIbot.readMyEvents(true, mEvent.mEventId);
+//                                    InEvent subev = mIbot.mEvents.get(mEvent.mEventId);
+//                                    if (subev == null || subev.imGoing() != newRSVP)
+//                                        InError.get().add(InError.ErrSeverity.INFO,
+//                                                InError.ErrType.UNKNOWN,
+//                                                "Error " + (newRSVP ? "subscribing (list full?)" : "unsubscribing") + ", please try from website");
+//                                    else InError.get().add(InError.ErrSeverity.INFO,
+//                                            InError.ErrType.UNKNOWN,
+//                                            "Event " + (newRSVP ? "" : "un") + "subscribed successfully");
+//                                }
+//                                break;
+//                        }
+//                    else
+//                        return false;
+//                }
+//                return true;
+//            }
+//        }
     }
 
     private class DataUpdateReceiver extends BroadcastReceiver {

@@ -14,15 +14,30 @@
  */
 package com.marcellourbani.internationsevents;
 
+import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.support.v4.content.WakefulBroadcastReceiver;
 
 
 public class InReceiver extends WakefulBroadcastReceiver {
+    private static final int MYREQUESTCODE = 123;
+
     @Override
     public void onReceive(Context context, Intent intent) {
-        Intent i = new Intent(context,InService.class);
-        startWakefulService(context,i);
+        String action = intent.getAction();
+        if ( action == Intent.ACTION_POWER_CONNECTED||action==Intent.ACTION_BOOT_COMPLETED) {
+            InService.schedule(false,true);
+        } else {
+            Intent i = new Intent(context, InService.class);
+            i.setAction(InService.ACTION_REFRESH_ALL);
+            startWakefulService(context, i);
+        }
+    }
+
+    public static PendingIntent getIntent(boolean scheduled) {
+        Intent intent = new Intent(InApp.get(), InReceiver.class);
+        PendingIntent pintent = PendingIntent.getBroadcast(InApp.get(), MYREQUESTCODE, intent, scheduled ? PendingIntent.FLAG_NO_CREATE : 0);
+        return pintent;
     }
 }
