@@ -17,10 +17,14 @@ package com.marcellourbani.internationsevents;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
+import android.os.PatternMatcher;
 import android.support.v4.util.ArrayMap;
 
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
+
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
 
 public class InGroup {
@@ -35,15 +39,16 @@ public class InGroup {
         mSaved = true;
     }
     InGroup(Element e){
-        Elements tmp = e.select("TD.results-group.cf DIV.group-info a");
-        mDesc        = tmp.get(0).text();
-        String   url = tmp.get(0).attr("href");
+        mDesc        = e.text();
+        String   url = e.attr("href");
         String[] x;
-        x   = url.split("/");
-        mId = x[x.length-1];
-        //mId          = tmp.get(0).attr("href").split("/([0-9]+)")[1];
-        mMembers     = Integer.parseInt( e.select("TD.results-members").get(0).text());
-        mActivities  = Integer.parseInt( e.select("TD.results-activities").get(0).text());
+        ///activity-group/329?ref=pr_gr
+        final Pattern p = Pattern.compile("/([0-9]+)");
+        Matcher m = p.matcher(url);
+        if(m.find()) mId = m.group(1);
+//        //mId          = tmp.get(0).attr("href").split("/([0-9]+)")[1];
+//        mMembers     = Integer.parseInt( e.select("TD.results-members").get(0).text());
+//        mActivities  = Integer.parseInt( e.select("TD.results-activities").get(0).text());
     }
     boolean isSaved(){
         if (!mSaved){

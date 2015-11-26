@@ -171,12 +171,29 @@ public class InternationsBot {
     }
 
     public ArrayMap<String, InGroup> readMyGroups() {
-        Grouppage page1 = dlMyGroupsPage("http://www.internations.org/activity-group/search/?activity_group_search[userActivityGroups]=1", true);
-        for (InGroup g : page1.mGroups.values()) mGroups.put(g.mId, g);
-        for (String url : page1.mPages) {
-            if (!InError.isOk()) continue;
-            Grouppage page = dlMyGroupsPage(url, false);
-            for (InGroup g : page.mGroups.values()) mGroups.put(g.mId, g);
+//        Grouppage page1 = dlMyGroupsPage("http://www.internations.org/activity-group/search/?activity_group_search[userActivityGroups]=1", true);
+//        for (InGroup g : page1.mGroups.values()) mGroups.put(g.mId, g);
+//        for (String url : page1.mPages) {
+//            if (!InError.isOk()) continue;
+//            Grouppage page = dlMyGroupsPage(url, false);
+//            for (InGroup g : page.mGroups.values()) mGroups.put(g.mId, g);
+//        }
+        try {
+            String profile = mClient.geturl_string("https://www.internations.org/profile/");
+//            if (profile == null) return page;
+            Document doc = Jsoup.parse(profile);
+            Elements elements = doc.select("div.u-hideBelowTablet-block div.js-teaser-list-item");
+            for (Element e : elements) {
+                Elements tmp = e.select("A.teaserList__itemTitle");
+                if(tmp.size()>0){
+                InGroup group = new InGroup(tmp.get(0));
+                    if (group.mId!=null)
+                mGroups.put(group.mId,group);
+                }
+            }
+        } catch (Exception e) {
+            InError.get().add(InError.ErrType.NETWORK, "Error downloading my groups.\n" + e.getMessage());
+            Log.d(INTAG, e.getMessage());
         }
         return mGroups;
     }
