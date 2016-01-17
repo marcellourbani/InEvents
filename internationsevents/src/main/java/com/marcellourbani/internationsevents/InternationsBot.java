@@ -24,6 +24,8 @@ import android.preference.PreferenceManager;
 import android.support.v4.util.ArrayMap;
 import android.util.Log;
 
+import org.json.JSONArray;
+import org.json.JSONObject;
 import org.jsoup.Jsoup;
 import org.jsoup.nodes.Document;
 import org.jsoup.nodes.Element;
@@ -32,7 +34,6 @@ import org.jsoup.select.Elements;
 import java.io.IOException;
 import java.net.HttpCookie;
 import java.net.MalformedURLException;
-import java.net.URL;
 import java.text.ParseException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -45,7 +46,7 @@ import java.util.regex.Pattern;
 import com.marcellourbani.internationsevents.HttpClient.NameValuePair;
 
 public class InternationsBot {
-    public static final String BASEURL = "http://www.internations.org";
+    public static final String BASEURL = "https://www.internations.org";
     public static final String MESSAGEURL = "https://www.internations.org/message/?ref=he_msg";
     private static final String MYEVENTSURL = "http://www.internations.org/events/my?ref=he_ev_me",
             SIGNUPURL = "https://www.internations.org/security/do-login/";
@@ -89,11 +90,6 @@ public class InternationsBot {
         }
     }
 
-    private class Grouppage {
-        ArrayMap<String, InGroup> mGroups = new ArrayMap<>();
-        ArrayList<String> mPages = new ArrayList<>();
-    }
-
     public boolean passIsSet() {
         mUser = mPref.getString("pr_email", "");
         mPass = mPref.getString("pr_password", "");
@@ -111,7 +107,6 @@ public class InternationsBot {
         final Pattern RESULTP = Pattern.compile("\"success\":([a-z]*),\"message\":\"([^\"]*)\"");
         try {
             if (!sign()) return false;
-            ArrayList<NameValuePair> parms = new ArrayList<>();
             String url = event.getRsvpUrl(going);
             String result;
             ArrayList<NameValuePair> params = new ArrayList<>();
@@ -135,61 +130,22 @@ public class InternationsBot {
         } catch (HttpClient.HttpClientException exception) {
             InError.get().add(InError.ErrType.NETWORK, "Error changing RSVP (event closed?).\nPlease try over the website\n\n");
         } catch (Throwable e) {
-            InError.get().add(InError.ErrType.NETWORK, "Error changing RSVP.\nnetwork connection error\n\n"+e.getMessage());
+            InError.get().add(InError.ErrType.NETWORK, "Error changing RSVP.\nnetwork connection error\n\n" + e.getMessage());
             Log.d(INTAG, e.getMessage());
         }
         return false;
     }
 
-    private Grouppage dlMyGroupsPage(String url, boolean getPageList) {
-        Grouppage page = new Grouppage();
-        try {
-            String text = mClient.geturl_string(url);
-            if (text == null) return page;
-            Document doc = Jsoup.parse(extractTable(text, "search-results"));
-            Elements elements = doc.select("table#search-results tbody tr");
-            for (Element e : elements) {
-                InGroup group = new InGroup(e);
-                page.mGroups.put(group.mId, group);
-            }
-            if (getPageList) {
-                Matcher mat = Pattern.compile("(?s)(<span[^>]*pages.*/span>).*Next page link").matcher(text);
-                if (mat.find()) {
-                    doc = Jsoup.parse(mat.group(1));
-                    elements = doc.select("SPAN.pages a");
-                    for (Element e : elements) {
-                        URL u = new URL(new URL(BASEURL), e.attr("href"));
-                        page.mPages.add(u.toString());
-                    }
-                }
-            }
-        } catch (Exception e) {
-            InError.get().add(InError.ErrType.NETWORK, "Error downloading my groups.\n" + e.getMessage());
-            Log.d(INTAG, e.getMessage());
-        }
-        return page;
-    }
-
     public ArrayMap<String, InGroup> readMyGroups() {
-//        Grouppage page1 = dlMyGroupsPage("http://www.internations.org/activity-group/search/?activity_group_search[userActivityGroups]=1", true);
-//        for (InGroup g : page1.mGroups.values()) mGroups.put(g.mId, g);
-//        for (String url : page1.mPages) {
-//            if (!InError.isOk()) continue;
-//            Grouppage page = dlMyGroupsPage(url, false);
-//            for (InGroup g : page.mGroups.values()) mGroups.put(g.mId, g);
-//        }
         try {
-            String profile = mClient.geturl_string("https://www.internations.org/profile/");
-//            if (profile == null) return page;
-            Document doc = Jsoup.parse(profile);
-            Elements elements = doc.select("div.u-hideBelowTablet-block div.js-teaser-list-item");
-            for (Element e : elements) {
-                Elements tmp = e.select("A.teaserList__itemTitle");
-                if(tmp.size()>0){
-                InGroup group = new InGroup(tmp.get(0));
-                    if (group.mId!=null)
-                mGroups.put(group.mId,group);
-                }
+            JSONObject gso = mClient.geturl_in_json("https://www.internations.org/activity-group/my?limit=300&offset=0");
+            int num = gso.getInt("total");
+            JSONArray rawgr = gso.getJSONObject("_embedded").getJSONArray("self");
+            if (num < rawgr.length()) num = rawgr.length();
+            for (int i = 0; i < num; i++) {
+                InGroup group = new InGroup(rawgr.getJSONObject(i));
+                if (group.mId != null)
+                    mGroups.put(group.mId, group);
             }
         } catch (Exception e) {
             InError.get().add(InError.ErrType.NETWORK, "Error downloading my groups.\n" + e.getMessage());
@@ -234,8 +190,12 @@ public class InternationsBot {
             long last = c.getLong(1);
             long now = (new Date()).getTime();
             long limit = refk.getLimit();
+            c.close();
             return now - last > limit;
-        } else return true;
+        } else {
+            if(c!=null)c.close();
+            return true;
+        }
     }
 
     public ArrayMap<String, InEvent> loadEvents() {
@@ -373,19 +333,24 @@ public class InternationsBot {
         try {
             for (InGroup grp : mGroups.values()) {
                 group = grp;
-                String url = BASEURL + "/activity-group/" + group.mId + "/activity/";
-                String activities = mClient.geturl_string(url);
-                Matcher m = Pattern.compile("(?s)(<ul[^>]*upcoming.*/ul>).*/.upcoming").matcher(activities);
-                if (m.find()) {
-                    Document doc = Jsoup.parse(m.group(1));
-                    Elements elements = doc.select("li.activity");
-                    for (Element e : elements) {
-                        addOrUpdateEvent(new InEvent(e, group));
+                String url = BASEURL + "/activity-group/" + group.mId + "/activities/upcoming?limit=100&offset=0";
+                JSONArray jsevents = mClient.geturl_in_json(url).getJSONObject("_embedded").getJSONArray("self");
+                for(int i = 0;i<jsevents.length();i++){
+                    InEvent event = new InEvent(jsevents.getJSONObject(i));
+                    InEvent old = mEvents.get(event.mEventId);
+                    if (old==null){
+                        refineEvent(event);
+                        addOrUpdateEvent(event);
                     }
                 }
             }
         } catch (IOException e) {
             InError.get().add(InError.ErrType.NETWORK, "Error downloading events for group " + group.mDesc + ".\n" + e.getMessage());
+            Log.d(INTAG, e.getMessage());
+        } catch (Exception e) {
+            String txt;
+            txt=group==null?"Unknown": group.mDesc;
+            InError.get().add(InError.ErrType.NETWORK, "Error parsing events for group " + txt + ".\n" + e.getMessage());
             Log.d(INTAG, e.getMessage());
         }
     }

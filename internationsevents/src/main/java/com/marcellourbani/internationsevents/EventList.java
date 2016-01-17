@@ -14,7 +14,6 @@
  */
 package com.marcellourbani.internationsevents;
 
-import android.app.Activity;
 import android.support.v4.app.ListFragment;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -24,7 +23,6 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
-import android.support.v7.app.ActionBarActivity;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -101,7 +99,6 @@ public class EventList extends AppCompatActivity {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.event_list, menu);
         refresh = menu.findItem(R.id.action_refresh);
-        mFrag.loadevents(false, false);
         return true;
     }
 

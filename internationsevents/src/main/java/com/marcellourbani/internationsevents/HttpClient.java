@@ -21,6 +21,9 @@ import com.squareup.okhttp.RequestBody;
 import com.squareup.okhttp.Response;
 
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import java.io.IOException;
 import java.net.CookieManager;
 import java.net.CookiePolicy;
@@ -47,6 +50,16 @@ public class HttpClient {
         Response response = client.newCall(request).execute();
         if (!response.isSuccessful()) throw new HttpClientException( response);
         return response.body().string();
+    }
+    public JSONObject geturl_in_json(String url) throws IOException, JSONException {
+        Request request = new Request.Builder()
+                .header("User-Agent", UA)
+                .header("accept", "application/vnd.org.internations.frontend+json")
+                .url(url)
+                .build();
+        Response response = client.newCall(request).execute();
+        if (!response.isSuccessful()) throw new HttpClientException( response);
+        return new JSONObject( response.body().string());
     }
 
 

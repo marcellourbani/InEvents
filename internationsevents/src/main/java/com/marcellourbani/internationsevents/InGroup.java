@@ -17,14 +17,10 @@ package com.marcellourbani.internationsevents;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.os.PatternMatcher;
 import android.support.v4.util.ArrayMap;
 
-import org.jsoup.nodes.Element;
-import org.jsoup.select.Elements;
-
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
+import org.json.JSONException;
+import org.json.JSONObject;
 
 
 public class InGroup {
@@ -38,23 +34,20 @@ public class InGroup {
         mActivities =c.getInt(c.getColumnIndex("activities"));
         mSaved = true;
     }
-    InGroup(Element e){
-        mDesc        = e.text();
-        String   url = e.attr("href");
-        String[] x;
-        ///activity-group/329?ref=pr_gr
-        final Pattern p = Pattern.compile("/([0-9]+)");
-        Matcher m = p.matcher(url);
-        if(m.find()) mId = m.group(1);
-//        //mId          = tmp.get(0).attr("href").split("/([0-9]+)")[1];
-//        mMembers     = Integer.parseInt( e.select("TD.results-members").get(0).text());
-//        mActivities  = Integer.parseInt( e.select("TD.results-activities").get(0).text());
+
+    public InGroup(JSONObject go) throws JSONException {
+        mId = Integer.toString(go.getInt("activityGroupId"));
+        mDesc = go.getString("name");
+        mMembers = go.getInt("memberCount");
+        mSaved = true;
     }
+
     boolean isSaved(){
         if (!mSaved){
-           SQLiteDatabase db = InApp.get().getDB().getRodb();
-           Cursor c = db.rawQuery("select * from groups where id = ?;",new String[]{mId});
-           mSaved   = c!=null&&c.getCount() > 0;
+            SQLiteDatabase db = InApp.get().getDB().getRodb();
+            Cursor c = db.rawQuery("select * from groups where id = ?;",new String[]{mId});
+            mSaved   = c!=null&&c.getCount() > 0;
+            if(c!=null)c.close();
         }
         return mSaved;
     }
@@ -79,6 +72,7 @@ public class InGroup {
             InGroup g = new InGroup(c);
             groups.put(g.mId,g);
         }
+        if(c!=null)c.close();
         return  groups;
     }
 

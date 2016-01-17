@@ -46,9 +46,11 @@
         </activity>
 
         <service android:name=".InService" />
-        <receiver android:name=".InReceiver">
+        <receiver android:name=".InReceiver"/>
+        <receiver android:name=".InBootReceiver">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </receiver>
     </application>

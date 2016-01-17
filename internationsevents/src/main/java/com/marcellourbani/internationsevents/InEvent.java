@@ -18,10 +18,10 @@ import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.support.v4.util.ArrayMap;
-import android.util.Log;
+import android.text.Html;
 
-import org.jsoup.Jsoup;
-import org.jsoup.nodes.Document;
+import org.json.JSONException;
+import org.json.JSONObject;
 import org.jsoup.nodes.Element;
 import org.jsoup.select.Elements;
 
@@ -39,13 +39,11 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class InEvent {
-    private static final Pattern MACTPATTERN = Pattern.compile("activity-group/([0-9]+)/activity/([0-9]+)");
-    private static final Pattern MEVENTPATTERN = Pattern.compile("/events?/.*[^0-9]([0-9]+)$");
+    private static final Pattern MACTPATTERN = Pattern.compile("activity-group/([0-9]+)/activity/([0-9]+)\\?.*");
+    private static final Pattern MEVENTPATTERN = Pattern.compile("/events?/.*[^0-9]([0-9]+)\\?.*$");
     private static final DateFormat MYEVENTDF = new SimpleDateFormat("dd MMM kk:mm", Locale.US);
     private static final DateFormat MYEVENTDF_NOTIME = new SimpleDateFormat("MMM dd", Locale.US);
-    private static final DateFormat DETAILDF = new SimpleDateFormat("MMM dd,yyyy,KK:mm aa", Locale.US);
-    private static final DateFormat DETAILDFNEW = new SimpleDateFormat("dd MMM yyyy HH:mm", Locale.US);
-    private static final DateFormat GROPUEVENTDF = new SimpleDateFormat("dd MMMM yyyy", Locale.US);
+    private static final Pattern MSTRIPURLPARAMPAT = Pattern.compile("([^\\?]*)\\?.*$");
     String mGroupId = null;
     String mEventId;
     String mIconUrl, mTitle, mLocation, mEventUrl, mGroup;
@@ -55,6 +53,17 @@ public class InEvent {
     GregorianCalendar mStart, mStop;
     private boolean mNew;
     long mTimelimit = 0L;
+
+    public InEvent(JSONObject obj) throws JSONException {
+        mEventId = obj.getString("activityId");
+        mGroupId = obj.getString("activityGroupId");
+        mEventUrl = "https://www.internations.org/activity-group/" + mGroupId + "/activity/" + mEventId;
+        String tmp = obj.getString("markup");
+        final Pattern MICONPATTERN = Pattern.compile("teaserRow__image responsiveImage[^>]+src\\s*=\\s*\"([^\"]+)\"");
+        Matcher mat = MICONPATTERN.matcher(tmp);
+        if (mat.find())
+            mIconUrl = mat.group(1);
+    }
 
     public boolean isNew() {
         return mNew;
@@ -120,65 +129,55 @@ public class InEvent {
 
     @Override
     public String toString() {
-        String text = mGroup==null||mGroup.length()==0?"Event":mGroup;
-        return text+"/"+mTitle+"/"+MYEVENTDF.format(mStart.getTime());
+        String text = mGroup == null || mGroup.length() == 0 ? "Event" : mGroup;
+        return text + "/" + mTitle + "/" + MYEVENTDF.format(mStart.getTime());
     }
 
     public void refine(String event) throws ParseException {
-            String[] lines = event.split("\n");
-            boolean active=false;
-            for(int i=0;i<lines.length;i++){
-                if (lines[i].equals("BEGIN:VEVENT")){
-                    active = true;
-                    continue;
-                }
-                if(!active) continue;
-                if(lines[i].equals("END:VEVENT"))break;
-                String[] kv = lines[i].split(":", 2);
-                if(kv[0].equals("LOCATION"))
-                    mLocation=kv[1].replaceAll("\\\\([^\\\\])","$1");
-                if(kv[0].indexOf("DTSTART")==0)mStart=tsToCal(kv[1]);
-                if(kv[0].indexOf("DTEND")==0)mStop=tsToCal(kv[1]);
-            }
+        String[] lines = event.split("\n");
+        boolean active = false;
 
-    }
-
-    private void setEventTimeDetail(GregorianCalendar cal, String datetext) {
-        try {
-            cal.setTime(DETAILDFNEW.parse(datetext));
-        } catch (ParseException e) {
-            try {
-                cal.setTime(DETAILDF.parse(datetext));
-            } catch (ParseException e1) {
+        for (int i = 0; i < lines.length; i++) {
+            if (lines[i].equals("BEGIN:VEVENT")) {
+                active = true;
+                continue;
             }
+            if (!active) continue;
+            if (lines[i].equals("END:VEVENT")) break;
+            String[] kv = lines[i].split(":", 2);
+            if (kv[0].equals("LOCATION"))
+                mLocation = kv[1].replaceAll("\\\\([^\\\\])", "$1");
+            if (kv[0].indexOf("DTSTART") == 0) mStart = tsToCal(kv[1]);
+            if (kv[0].indexOf("DTEND") == 0) mStop = tsToCal(kv[1]);
+            if (kv[0].indexOf("SUMMARY") == 0 && (mTitle == null || mTitle.length() == 0)) mTitle =
+                    Html.fromHtml(kv[1]).toString();
         }
+
     }
 
     private GregorianCalendar tsToCal(String ts) {
-        GregorianCalendar cal=new GregorianCalendar();
+        GregorianCalendar cal = new GregorianCalendar();
         cal.setTimeZone(SimpleTimeZone.getTimeZone("UTC"));
         int year = Integer.parseInt(ts.substring(0, 4));
-        int month = Integer.parseInt(ts.substring(4, 6))-1;
+        int month = Integer.parseInt(ts.substring(4, 6)) - 1;
         int day = Integer.parseInt(ts.substring(6, 8));
         int hour = Integer.parseInt(ts.substring(9, 11));
         int minute = Integer.parseInt(ts.substring(11, 13));
-        cal.set(year,month,day,hour,minute,0);
+        cal.set(year, month, day, hour, minute, 0);
         return cal;
     }
 
     public boolean isExpired() {
         long offset = 3600000 * (mAllDay ? 36 : 24);
-        long limit = new Date().getTime() - 36 * 3600000;//36 hours ago;
         return mStart.getTime().getTime() < new Date().getTime() - offset;
     }
 
     public String getRefineUrl() {
         if (isEvent()) {
             int idx = mEventUrl.indexOf("details");
-            String s = mEventUrl.substring(0,idx)+"ical/"+mEventId;
-            return s;
+            return mEventUrl.substring(0, idx) + "ical/" + mEventId;
         } else
-            return mEventUrl+"/ical/";
+            return mEventUrl + "/ical/";
     }
 
     private enum SubscStatus {
@@ -225,14 +224,14 @@ public class InEvent {
             }
         }
 
-        public static SubscStatus decodeCalendarElement(Element element, InEvent event) {
+        public static SubscStatus decodeCalendarElement(Element element) {
             //do we have an attending section?
             Elements tmp = element.select("span.t-attending-message");
             if (tmp != null && tmp.size() > 0) return GOING;
             tmp = element.select("span.t-guestlist-limit-reached");
-            if (tmp != null && tmp.size() > 0)return FULL;
+            if (tmp != null && tmp.size() > 0) return FULL;
             tmp = element.select("span.t-guestlist-closed");
-            if (tmp != null && tmp.size() > 0)return CLOSED;
+            if (tmp != null && tmp.size() > 0) return CLOSED;
             return NOTGOING;
         }
 
@@ -251,38 +250,18 @@ public class InEvent {
     }
 
     public String getRsvpUrl(boolean attend) {
-        return getRsvpUrl(attend, beenInvited());
-    }
-
-    public String getRsvpUrl(boolean attend, boolean invited) {
-        String url=mEventUrl;
-        if(url.startsWith("http:"))url="https:"+url.substring(5);
-        return url+(attend?(isEvent()?"/attend":"/accept"):"/decline");
+        String url;
+        Matcher m = MSTRIPURLPARAMPAT.matcher(mEventUrl);
+        if (m.find())
+            url = m.group(1);
+        else
+            url = mEventUrl;
+        if (url.startsWith("http:")) url = "https:" + url.substring(5);
+        return url + (attend ? (isEvent() ? "/attend" : "/accept") : "/decline");
     }
 
     public boolean isEvent() {
         return mGroupId == null;
-    }
-
-    public InEvent(Element e, InGroup group) {
-        try {
-            mGroupId = group.mId;
-            mGroup = group.mDesc;
-            mIconUrl = getAttr(e.select("div.image img"), 0, "src");
-            Elements tmp = e.select("div.info a");
-            mEventUrl = getAbsoluteUrl(getAttr(tmp, 0, "href"));
-            mTitle = tmp.get(0).text();
-            Matcher mat = MACTPATTERN.matcher(mEventUrl);
-            if (mat.find())
-                mEventId = mat.group(2);
-            String ts = e.select("p.date").get(0).text();
-            mMine = false;
-            mStart = new GregorianCalendar();
-            String startdate = ts.substring(0, ts.indexOf("|"));
-            mStart.setTime(GROPUEVENTDF.parse(startdate));
-        } catch (Exception ex) {
-            Log.d(InternationsBot.INTAG, ex.getMessage());
-        }
     }
 
     InEvent(Cursor c) {
@@ -332,7 +311,7 @@ public class InEvent {
             if (tmp != null && tmp.size() > 0) {
                 mGroup = tmp.get(0).text();
             }
-            mRsvp = SubscStatus.decodeCalendarElement(e, this);
+            mRsvp = SubscStatus.decodeCalendarElement(e);
             mLocation = "";
             tmp = e.select("span.teaserRow__date");
             String startd = tmp.get(0).text();
@@ -422,6 +401,7 @@ public class InEvent {
             SQLiteDatabase db = InApp.get().getDB().getRodb();
             Cursor c = db.rawQuery("select * from events where id = ?;", new String[]{mEventId});
             mSaved = c != null && c.getCount() > 0;
+            if (c != null) c.close();
         }
         return mSaved;
     }
@@ -448,6 +428,7 @@ public class InEvent {
             InEvent event = new InEvent(c);
             events.put(event.mEventId, event);
         }
+        if (c != null) c.close();
         return events;
     }
 
@@ -483,10 +464,6 @@ public class InEvent {
 
     public boolean rsvpChangeable() {
         return mRsvp.canBeChanged();
-    }
-
-    public boolean beenInvited() {
-        return mRsvp == SubscStatus.INVITED;
     }
 
     public boolean addedrecently() {
