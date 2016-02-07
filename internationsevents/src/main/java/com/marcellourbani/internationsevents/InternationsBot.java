@@ -138,7 +138,7 @@ public class InternationsBot {
 
     public ArrayMap<String, InGroup> readMyGroups() {
         try {
-            JSONObject gso = mClient.geturl_in_json("https://www.internations.org/activity-group/my?limit=300&offset=0");
+            JSONObject gso = mClient.geturl_in_json("https://www.internations.org/api/activity-groups/my?limit=300&offset=0");
             int num = gso.getInt("total");
             JSONArray rawgr = gso.getJSONObject("_embedded").getJSONArray("self");
             if (num < rawgr.length()) num = rawgr.length();
@@ -333,7 +333,7 @@ public class InternationsBot {
         try {
             for (InGroup grp : mGroups.values()) {
                 group = grp;
-                String url = BASEURL + "/activity-group/" + group.mId + "/activities/upcoming?limit=100&offset=0";
+                String url = BASEURL + "/api/activity-groups/" + group.mId + "/activities/upcoming?limit=100&offset=0";
                 JSONArray jsevents = mClient.geturl_in_json(url).getJSONObject("_embedded").getJSONArray("self");
                 for(int i = 0;i<jsevents.length();i++){
                     InEvent event = new InEvent(jsevents.getJSONObject(i));
