@@ -67,7 +67,7 @@ public class EventList extends AppCompatActivity {
                     .add(R.id.container, mFrag, EVFRAG)
                     .commit();
             InService.schedule(false);
-        }
+        }else if (mFrag.isNew()) mFrag.loadevents(false, false);
     }
 
     @Override
@@ -195,6 +195,7 @@ public class EventList extends AppCompatActivity {
         }
     }
 
+
     public static class EventsFragment extends ListFragment {
         protected static InternationsBot mIbot;
         private NetWorker mNw;
@@ -203,7 +204,9 @@ public class EventList extends AppCompatActivity {
         public EventsFragment() {
             mIbot = InApp.getbot();
         }
-
+        public boolean isNew(){
+            return mEventAdapter==null;
+        }
         @Override
         public void onAttach(Context c) {
             super.onAttach(c);

@@ -177,7 +177,7 @@ public class InEvent {
             int idx = mEventUrl.indexOf("details");
             return mEventUrl.substring(0, idx) + "ical/" + mEventId;
         } else
-            return mEventUrl + "/ical/";
+            return mEventUrl.replaceAll("\\?.*", "") + "/ical/";
     }
 
     private enum SubscStatus {
