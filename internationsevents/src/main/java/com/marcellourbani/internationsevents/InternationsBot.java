@@ -333,7 +333,9 @@ public class InternationsBot {
         try {
             for (InGroup grp : mGroups.values()) {
                 group = grp;
-                String url = BASEURL + "/api/activity-groups/" + group.mId + "/activities/upcoming?limit=100&offset=0";
+                //String url = BASEURL + "/api/activity-groups/" + group.mId + "/activities/upcoming?limit=100&offset=0";
+                //https://www.internations.org/api/activities/past?activityGroupId=4942&limit=10&offset=10
+                String url = BASEURL + "/api/activities/upcoming?activityGroupId=" + group.mId + "&limit=100&offset=0";
                 JSONArray jsevents = mClient.geturl_in_json(url).getJSONObject("_embedded").getJSONArray("self");
                 for(int i = 0;i<jsevents.length();i++){
                     InEvent event = new InEvent(jsevents.getJSONObject(i));

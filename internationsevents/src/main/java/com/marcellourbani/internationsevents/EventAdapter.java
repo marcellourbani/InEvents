@@ -88,7 +88,7 @@ public class EventAdapter extends ArrayAdapter<InEvent> {
                 location.setOnClickListener(null);
             }else{
                 startdt.setText(event.mStart != null ? DF.format(event.mStart.getTime()) : "");
-                starttm.setText(event.mStart != null && event.mMine ? TF.format(event.mStart.getTime()) : "");
+                starttm.setText(event.mStart != null ? TF.format(event.mStart.getTime()) : "");
                 if(event.isEvent())group.setVisibility(View.GONE);
                 else {
                     group.setText(event.mGroup);

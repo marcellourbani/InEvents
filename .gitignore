@@ -2,3 +2,8 @@
 /local.properties
 /.idea/workspace.xml
 .DS_Store
+.idea/caches
+.idea/libraries/*
+build
+release
+*.apk
