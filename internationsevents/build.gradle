@@ -1,32 +1,31 @@
-apply plugin: 'com.android.application'
 buildscript {
     repositories {
+        mavenCentral()
         google()
-        jcenter()
     }
-
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.5.3'
+        classpath 'com.android.tools.build:gradle:7.1.2'
     }
+}
+plugins {
+    id 'com.android.application'
 }
 
 repositories {
     mavenCentral()
-
 }
 
 android {
-    compileSdkVersion 26
+    compileSdkVersion 32
     defaultConfig {
         minSdkVersion 14
-        targetSdkVersion 26
-        versionCode 27
-        versionName '1.35'
+        targetSdkVersion 32
+        versionCode 28
+        versionName '1.36'
     }
     buildTypes {
         release {
             debuggable false
-            apply plugin: 'findbugs'
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.txt'
 
@@ -40,14 +39,17 @@ android {
     }
     productFlavors {
     }
-    buildToolsVersion '29.0.2'
 }
 android {
     useLibrary 'org.apache.http.legacy'
 }
 dependencies {
-    implementation 'com.android.support:appcompat-v7:28.0.0'
-    implementation 'com.squareup.okhttp:okhttp:2.7.5'
-    implementation 'com.squareup.picasso:picasso:2.71828'
-    implementation 'org.jsoup:jsoup:1.12.2'
+    api 'com.squareup.okhttp:okhttp:2.7.5'
+    api 'com.squareup.picasso:picasso:2.71828'
+    api 'org.jsoup:jsoup:1.14.3'
+    api 'androidx.legacy:legacy-support-v4:1.0.0'
+    api 'androidx.activity:activity:1.4.0'
+    api 'androidx.fragment:fragment:1.4.1'
+    api 'androidx.core:core:1.7.0'
+    implementation 'androidx.appcompat:appcompat:1.4.1'
 }

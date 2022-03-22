@@ -15,7 +15,6 @@
 package com.marcellourbani.internationsevents;
 
 import android.content.Context;
-import android.support.v4.util.ArrayMap;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -23,6 +22,8 @@ import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
+
+import androidx.collection.ArrayMap;
 
 import com.squareup.picasso.Picasso;
 
@@ -69,14 +70,14 @@ public class EventAdapter extends ArrayAdapter<InEvent> {
         InEvent event;
         TextView title,location,startdt,starttm,group;
         Controls(View view,InEvent event){
-            title = (TextView) view.findViewById(R.id.eititle);
-            location = (TextView) view.findViewById(R.id.eilocation);
-            rsvp = (Button) view.findViewById(R.id.eirsvp);
-            startdt = (TextView) view.findViewById(R.id.eidate);
-            starttm = (TextView) view.findViewById(R.id.eitime);
-            group = (TextView) view.findViewById(R.id.eigroup);
-            icon = (ImageView) view.findViewById(R.id.eiicon);
-            newicon = (ImageView) view.findViewById(R.id.einew);
+            title = view.findViewById(R.id.eititle);
+            location = view.findViewById(R.id.eilocation);
+            rsvp = view.findViewById(R.id.eirsvp);
+            startdt = view.findViewById(R.id.eidate);
+            starttm = view.findViewById(R.id.eitime);
+            group = view.findViewById(R.id.eigroup);
+            icon = view.findViewById(R.id.eiicon);
+            newicon = view.findViewById(R.id.einew);
             setEvent(event);
         }
         void setEvent(InEvent ev){
@@ -88,13 +89,13 @@ public class EventAdapter extends ArrayAdapter<InEvent> {
                 location.setOnClickListener(null);
             }else{
                 startdt.setText(event.mStart != null ? DF.format(event.mStart.getTime()) : "");
-                starttm.setText(event.mStart != null ? TF.format(event.mStart.getTime()) : "");
+                starttm.setText(event.mStart != null && event.mMine ? TF.format(event.mStart.getTime()) : "");
                 if(event.isEvent())group.setVisibility(View.GONE);
                 else {
                     group.setText(event.mGroup);
                     group.setVisibility(View.VISIBLE);
                 }
-                Picasso.with(eventList).load(event.mIconUrl).into(icon);
+                Picasso.get().load(event.mIconUrl).into(icon);
                 title.setText(event.mTitle);
                 location.setText(event.mLocation);
                 rsvp.setText(event.getRsvpText());

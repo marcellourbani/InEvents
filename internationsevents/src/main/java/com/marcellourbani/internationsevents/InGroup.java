@@ -14,10 +14,12 @@
  */
 package com.marcellourbani.internationsevents;
 
+import android.annotation.SuppressLint;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.support.v4.util.ArrayMap;
+
+import androidx.collection.ArrayMap;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -27,6 +29,7 @@ public class InGroup {
     String mId,mDesc;
     int mMembers,mActivities;
     private boolean mSaved;
+    @SuppressLint("Range")
     InGroup(Cursor c){
         mId = c.getString(c.getColumnIndex("id"));
         mDesc = c.getString(c.getColumnIndex("description"));

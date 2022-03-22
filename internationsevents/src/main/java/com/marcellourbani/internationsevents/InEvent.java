@@ -14,11 +14,13 @@
  */
 package com.marcellourbani.internationsevents;
 
+import android.annotation.SuppressLint;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.support.v4.util.ArrayMap;
 import android.text.Html;
+
+import androidx.collection.ArrayMap;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -264,6 +266,7 @@ public class InEvent {
         return mGroupId == null;
     }
 
+    @SuppressLint("Range")
     InEvent(Cursor c) {
         long time;
         mSaved = true;

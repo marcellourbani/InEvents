@@ -21,8 +21,11 @@ import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.support.v4.util.ArrayMap;
 import android.util.Log;
+
+import androidx.collection.ArrayMap;
+
+import com.marcellourbani.internationsevents.HttpClient.NameValuePair;
 
 import org.json.JSONArray;
 import org.json.JSONObject;
@@ -42,8 +45,6 @@ import java.util.Date;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
-
-import com.marcellourbani.internationsevents.HttpClient.NameValuePair;
 
 public class InternationsBot {
     public static final String BASEURL = "https://www.internations.org";
@@ -333,9 +334,7 @@ public class InternationsBot {
         try {
             for (InGroup grp : mGroups.values()) {
                 group = grp;
-                //String url = BASEURL + "/api/activity-groups/" + group.mId + "/activities/upcoming?limit=100&offset=0";
-                //https://www.internations.org/api/activities/past?activityGroupId=4942&limit=10&offset=10
-                String url = BASEURL + "/api/activities/upcoming?activityGroupId=" + group.mId + "&limit=100&offset=0";
+                String url = BASEURL + "/api/activity-groups/" + group.mId + "/activities/upcoming?limit=100&offset=0";
                 JSONArray jsevents = mClient.geturl_in_json(url).getJSONObject("_embedded").getJSONArray("self");
                 for(int i = 0;i<jsevents.length();i++){
                     InEvent event = new InEvent(jsevents.getJSONObject(i));

@@ -14,7 +14,8 @@
  */
 package com.marcellourbani.internationsevents;
 
-import android.support.v4.app.ListFragment;
+import static com.marcellourbani.internationsevents.R.id.*;
+
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -22,8 +23,6 @@ import android.content.IntentFilter;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.Menu;
@@ -31,6 +30,10 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ListView;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.fragment.app.ListFragment;
 
 import java.util.ArrayList;
 
@@ -90,6 +93,7 @@ public class EventList extends AppCompatActivity {
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
         if (requestCode == SETPASSWORD && InApp.getbot().passIsSet() && mFrag != null)
             mFrag.loadevents(true, true);
     }
@@ -98,7 +102,7 @@ public class EventList extends AppCompatActivity {
     public boolean onCreateOptionsMenu(Menu menu) {
         // Inflate the menu; this adds items to the action bar if it is present.
         getMenuInflater().inflate(R.menu.event_list, menu);
-        refresh = menu.findItem(R.id.action_refresh);
+        refresh = menu.findItem(action_refresh);
         return true;
     }
 
@@ -120,31 +124,32 @@ public class EventList extends AppCompatActivity {
         int id = item.getItemId();
         Intent web;
         switch (id) {
-            case R.id.action_settings:
+            case action_settings:
                 startActivity(new Intent(this, InPreferences.class));
                 return true;
-            case R.id.action_refresh:
+            case action_refresh:
                 mFrag.loadevents(true, false);
                 return true;
-            case R.id.action_refresh_all:
+            case action_refresh_all:
                 //Intent i = new Intent(InApp.get(),InService.class);
                 //InApp.get().startService(i);
                 mFrag.loadevents(true, true);
                 return true;
-            case R.id.action_home:
+            case action_home:
                 web = new Intent(EventList.this, InWeb.class);
                 web.putExtra(InWeb.EVENT_URL, InternationsBot.BASEURL);
                 web.putExtra(InWeb.CURRENT_COOKIES, InApp.getbot().getCookies());
                 startActivity(web);
                 return true;
-            case R.id.action_messages:
+            case action_messages:
                 web = new Intent(EventList.this, InWeb.class);
                 web.putExtra(InWeb.EVENT_URL, InternationsBot.MESSAGEURL);
                 web.putExtra(InWeb.CURRENT_COOKIES, InApp.getbot().getCookies());
                 startActivity(web);
                 return true;
+            default:
+                return super.onOptionsItemSelected(item);
         }
-        return super.onOptionsItemSelected(item);
     }
 
     public void showmap(InEvent event) {
@@ -208,7 +213,7 @@ public class EventList extends AppCompatActivity {
             return mEventAdapter==null;
         }
         @Override
-        public void onAttach(Context c) {
+        public void onAttach(@NonNull Context c) {
             super.onAttach(c);
             scrollToNotified();
         }

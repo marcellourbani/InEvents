@@ -1,12 +1,10 @@
 package com.marcellourbani.internationsevents;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Point;
 import android.net.Uri;
 import android.os.Bundle;
-import android.support.v4.app.Fragment;
 import android.view.Display;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -18,6 +16,10 @@ import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
+
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.fragment.app.Fragment;
 
 public class InWebFragment extends Fragment {
     private static final String ARG_URL = "URL";
@@ -51,7 +53,7 @@ public class InWebFragment extends Fragment {
     }
 
     @Override
-    public void onCreate(Bundle savedInstanceState) {
+    public void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setRetainInstance(true);
         if (getArguments() != null) {
@@ -64,9 +66,9 @@ public class InWebFragment extends Fragment {
         Display display = ((WindowManager) InApp.get().getSystemService(Context.WINDOW_SERVICE)).getDefaultDisplay();
         Point p = new Point();
         display.getSize(p);
-        Double val = p.x / 1280d;
+        double val = p.x / 1280d;
         val = val * 100d;
-        return val.intValue();
+        return (int) val;
     }
 
     void setcookies(Bundle cookies) {
@@ -111,7 +113,7 @@ public class InWebFragment extends Fragment {
     }
 
     @Override
-    public void onAttach(Context activity) {
+    public void onAttach(@NonNull Context activity) {
         super.onAttach(activity);
         try {
             mListener = (OnFragmentInteractionListener) activity;

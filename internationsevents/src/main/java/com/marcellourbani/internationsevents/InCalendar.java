@@ -14,6 +14,7 @@
  */
 package com.marcellourbani.internationsevents;
 
+import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.content.ContentResolver;
 import android.content.ContentValues;
@@ -26,7 +27,8 @@ import android.preference.PreferenceManager;
 import android.provider.CalendarContract;
 import android.provider.CalendarContract.Calendars;
 import android.provider.CalendarContract.Events;
-import android.support.v4.util.ArrayMap;
+
+import androidx.collection.ArrayMap;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -60,6 +62,7 @@ public class InCalendar {
     }
 
 
+    @SuppressLint("Range")
     private InCalendar(Cursor c) {
         setId(c.getString(c.getColumnIndex(Calendars._ID)));
         setName(c.getString(c.getColumnIndex(Calendars.CALENDAR_DISPLAY_NAME)));
@@ -161,6 +164,7 @@ public class InCalendar {
             mEventId=eventId;
         }
     }
+    @SuppressLint("Range")
     public static ArrayList<String> syncEvents(ArrayMap<String, InEvent> events) {
         ArrayList<String> removed = new ArrayList<>();
         ArrayList<EvCal> toremove = new ArrayList<>();
