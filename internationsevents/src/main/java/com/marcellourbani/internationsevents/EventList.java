@@ -16,12 +16,15 @@ package com.marcellourbani.internationsevents;
 
 import static com.marcellourbani.internationsevents.R.id.*;
 
+import android.Manifest;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -33,12 +36,15 @@ import android.widget.ListView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.content.ContextCompat;
 import androidx.fragment.app.ListFragment;
 
 import java.util.ArrayList;
 
 public class EventList extends AppCompatActivity {
-    private static EventsFragment mFrag;
+    private static final int PERMISSION_CALENDAR=1;
+    private final String EVFRAG = "EVFRAG";
+    private EventsFragment mFrag;
     protected MenuItem refresh;
     private static final int SETPASSWORD = 2001;
     private DataUpdateReceiver dataUpdateReceiver;
@@ -54,23 +60,49 @@ public class EventList extends AppCompatActivity {
         mLastIntent = intent;
         mNotifiedEvent = intent.getStringExtra(InApp.NOTIFIEDEVENT);
     }
+    private boolean needPermissions(){
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return false;
+        return ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_CALENDAR) != PackageManager.PERMISSION_GRANTED ||
+                ContextCompat.checkSelfPermission(this, Manifest.permission.READ_CALENDAR) != PackageManager.PERMISSION_GRANTED;
+    }
+    private void checkPermissions(){
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && needPermissions()) {
+            requestPermissions(new String[] { Manifest.permission.WRITE_CALENDAR,Manifest.permission.READ_CALENDAR }, PERMISSION_CALENDAR);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String[] permissions, int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        switch (requestCode) {
+            case PERMISSION_CALENDAR:
+                initializeFragment();
+                return;
+        }
+    }
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        checkPermissions();
         setContentView(R.layout.activity_event_list);
-        final String EVFRAG = "EVFRAG";
         mFrag = (EventsFragment) getSupportFragmentManager().findFragmentByTag(EVFRAG);
         if (savedInstanceState == null || mFrag == null) {
-            mNotifiedEvent = getIntent().getStringExtra(InApp.NOTIFIEDEVENT);
-            mFrag = new EventsFragment();
-            mFrag.setRetainInstance(true);
-            mFrag.loadevents(false, false);
-            getSupportFragmentManager().beginTransaction()
-                    .add(R.id.container, mFrag, EVFRAG)
-                    .commit();
-            InService.schedule(false);
+            initializeFragment();
         }else if (mFrag.isNew()) mFrag.loadevents(false, false);
+    }
+
+    private void initializeFragment() {
+        if(needPermissions()) return;
+        mNotifiedEvent = getIntent().getStringExtra(InApp.NOTIFIEDEVENT);
+        mFrag = new EventsFragment();
+        mFrag.setRetainInstance(true);
+        mFrag.loadevents(false, false);
+        getSupportFragmentManager().beginTransaction()
+                .add(R.id.container, mFrag, EVFRAG)
+                .commit();
+        InService.schedule(false);
     }
 
     @Override

@@ -14,11 +14,13 @@
  */
 package com.marcellourbani.internationsevents;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.annotation.TargetApi;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
@@ -29,6 +31,7 @@ import android.provider.CalendarContract.Calendars;
 import android.provider.CalendarContract.Events;
 
 import androidx.collection.ArrayMap;
+import androidx.core.content.ContextCompat;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -61,6 +64,12 @@ public class InCalendar {
         this.mName = name;
     }
 
+    private static boolean needPermissions(Context context){
+        if(Build.VERSION.SDK_INT < Build.VERSION_CODES.M) return false;
+        return ContextCompat.checkSelfPermission(context, Manifest.permission.WRITE_CALENDAR) != PackageManager.PERMISSION_GRANTED ||
+                ContextCompat.checkSelfPermission(context, Manifest.permission.READ_CALENDAR) != PackageManager.PERMISSION_GRANTED;
+    }
+
 
     @SuppressLint("Range")
     private InCalendar(Cursor c) {
@@ -70,6 +79,7 @@ public class InCalendar {
 
     private static ContentValues getEventValues(Context context, InEvent event) {
         ContentValues values = new ContentValues();
+        if(needPermissions(context)) return values;
         TimeZone timeZone = TimeZone.getDefault();
         values.put(CalendarContract.Events.DTSTART, event.mStart.getTimeInMillis());
         values.put(CalendarContract.Events.DTEND, event.mStop != null ? event.mStop.getTimeInMillis() : (event.mStart.getTimeInMillis() + 3600000));
@@ -84,6 +94,7 @@ public class InCalendar {
     }
 
     public static void addEvent(Context context, InEvent event) {
+        if(needPermissions(context)) return;
         ContentResolver cr = context.getContentResolver();
         cr.insert(Events.CONTENT_URI, getEventValues(context, event));
     }
@@ -96,6 +107,7 @@ public class InCalendar {
         return Events.DESCRIPTION +" like ?";
     }
     public static void modifyEvent(Context context, InEvent event) {
+        if(needPermissions(context)) return;
         String cal = getDefaultCalendar(context);
         if (cal == null || cal.length() == 0)
             return;
@@ -109,6 +121,7 @@ public class InCalendar {
             updated = contentResolver.update(Events.CONTENT_URI, getEventValues(context, event),
                         "(" + Events._ID + " = ?)", new String[]{cursor.getString(0)}) > 0;
         }
+        cursor.close();
         if (!updated) addEvent(context, event);
     }
 
@@ -117,6 +130,7 @@ public class InCalendar {
     }
 
     public static List<InCalendar> getCalendars(Context context) {
+        if(needPermissions(context)) return new ArrayList<>();
         ArrayList<InCalendar> calendars = null;
         ContentResolver cr = context.getContentResolver();
         context.getResources();
@@ -138,6 +152,7 @@ public class InCalendar {
     }
 
     public static boolean addCalendarsPreferences(Context context, ListPreference calendarPref) {
+        if(needPermissions(context)) return false;
         List<InCalendar> calendars = getCalendars(context);
         if (calendars == null || calendars.size() == 0) return false;
         String calendar = getDefaultCalendar(context);
@@ -167,6 +182,7 @@ public class InCalendar {
     @SuppressLint("Range")
     public static ArrayList<String> syncEvents(ArrayMap<String, InEvent> events) {
         ArrayList<String> removed = new ArrayList<>();
+        if(needPermissions(InApp.get())) return removed;
         ArrayList<EvCal> toremove = new ArrayList<>();
         if (events == null) return removed;
         ContentResolver contentResolver = InApp.get().getContentResolver();
