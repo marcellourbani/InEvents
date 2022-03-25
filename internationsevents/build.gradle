@@ -44,7 +44,7 @@ android {
     useLibrary 'org.apache.http.legacy'
 }
 dependencies {
-    api 'com.squareup.okhttp:okhttp:2.7.5'
+    api 'com.squareup.okhttp3:okhttp-urlconnection:4.9.3'
     api 'com.squareup.picasso:picasso:2.71828'
     api 'org.jsoup:jsoup:1.14.3'
     api 'androidx.legacy:legacy-support-v4:1.0.0'

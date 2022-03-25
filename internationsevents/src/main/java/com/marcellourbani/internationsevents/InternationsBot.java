@@ -50,7 +50,7 @@ public class InternationsBot {
     public static final String BASEURL = "https://www.internations.org";
     public static final String MESSAGEURL = "https://www.internations.org/message/?ref=he_msg";
     private static final String MYEVENTSURL = "http://www.internations.org/events/my?ref=he_ev_me",
-            SIGNUPURL = "https://www.internations.org/security/do-login/";
+            SIGNUPURL = "https://www.internations.org/security/do-login/?v=2";
     static final String INTAG = "IN_EVENTS";
     public static final String ALLEVENTS = "ALLEVENTS";
     private String mUser;
@@ -365,8 +365,8 @@ public class InternationsBot {
                     parms.add(new NameValuePair("user_email", mUser));
                     parms.add(new NameValuePair("user_password", mPass));
                     parms.add(new NameValuePair("remember_me", "1"));
-                    String signoutcome = mClient.posturl_string(SIGNUPURL, parms);
-                    mSigned = signoutcome.indexOf("You must login to see this page.") <= 0;
+                    String signoutcome = mClient.login(SIGNUPURL, parms);
+                    mSigned = signoutcome.indexOf("Redirecting to https://www.internations.org/login/") <= 0;
                     if (!mSigned)
                         InError.get().add(InError.ErrType.LOGIN, "Error signing in, check your user and password");
                 } catch (Throwable e) {

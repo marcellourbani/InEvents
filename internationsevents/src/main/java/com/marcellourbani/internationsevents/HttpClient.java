@@ -14,12 +14,6 @@
  */
 package com.marcellourbani.internationsevents;
 
-import com.squareup.okhttp.FormEncodingBuilder;
-import com.squareup.okhttp.OkHttpClient;
-import com.squareup.okhttp.Request;
-import com.squareup.okhttp.RequestBody;
-import com.squareup.okhttp.Response;
-
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -30,16 +24,25 @@ import java.net.CookiePolicy;
 import java.net.HttpCookie;
 import java.util.List;
 
+import okhttp3.FormBody;
+import okhttp3.JavaNetCookieJar;
+import okhttp3.OkHttpClient;
+import okhttp3.Request;
+import okhttp3.RequestBody;
+import okhttp3.Response;
+
 public class HttpClient {
     private final static String UA = "user-agent:Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.130 Safari/537.36";
     private final OkHttpClient client;
     private final CookieManager manager;
 
     public HttpClient() {
-        client = new OkHttpClient();
         manager=new CookieManager();
         manager.setCookiePolicy(CookiePolicy.ACCEPT_ALL);
-        client.setCookieHandler(manager);
+        client = new OkHttpClient.Builder()
+                .followRedirects(false)
+                .cookieJar(new JavaNetCookieJar(manager))
+                .build();
     }
 
     public String geturl_string(String url) throws IOException {
@@ -61,16 +64,36 @@ public class HttpClient {
         if (!response.isSuccessful()) throw new HttpClientException( response);
         return new JSONObject( response.body().string());
     }
-
-
-    public String posturl_string(String url, List<NameValuePair> params) throws Throwable {
-        FormEncodingBuilder builder = new FormEncodingBuilder();
+    public String login(String url, List<NameValuePair> params) throws Throwable {
+        client.newCall(new Request.Builder().url(url).build()).execute();
+        FormBody.Builder builder = new FormBody.Builder();
         for (NameValuePair param : params) builder.add(param.getName(), param.getValue());
         RequestBody formBody = builder.build();
         Request request = new Request.Builder()
                 .url(url)
-                .header("User-Agent", UA)
-                .post(formBody)
+                .header("content-type","application/x-www-form-urlencoded")
+                .header("accept","application/json")
+                .method("POST",formBody)
+                .build();
+        Response response = client.newCall(request).execute();
+        String redirectUrl = response.header("location");
+        if(response.code() == 302 && redirectUrl.equals("https://www.internations.org/start/")){
+            Response resp2 = client.newCall(new Request.Builder().url(redirectUrl).build()).execute();
+            if (!resp2.isSuccessful()) throw new HttpClientException(resp2);
+            return resp2.body().string();
+        }
+        throw new HttpClientException(response);
+    }
+
+    public String posturl_string(String url, List<NameValuePair> params) throws Throwable {
+        FormBody.Builder builder = new FormBody.Builder();
+        for (NameValuePair param : params) builder.add(param.getName(), param.getValue());
+        RequestBody formBody = builder.build();
+        Request request = new Request.Builder()
+                .url(url)
+                .header("content-type","application/x-www-form-urlencoded")
+                .header("accept","application/json")
+                .method("POST",formBody)
                 .build();
         Response response = client.newCall(request).execute();
         if (!response.isSuccessful()) throw new HttpClientException(response);
