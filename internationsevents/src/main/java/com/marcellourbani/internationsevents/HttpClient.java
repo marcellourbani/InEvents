@@ -30,6 +30,7 @@ import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
 import okhttp3.Response;
+import okhttp3.ResponseBody;
 
 public class HttpClient {
     private final static String UA = "user-agent:Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/43.0.2357.130 Safari/537.36";
@@ -49,10 +50,10 @@ public class HttpClient {
         Request request = new Request.Builder()
                 .header("User-Agent", UA)
                 .url(url)
+                .header("accept", "application/vnd.org.internations.frontend+json")
                 .build();
         Response response = client.newCall(request).execute();
-        if (!response.isSuccessful()) throw new HttpClientException( response);
-        return response.body().string();
+        return bodystring(response);
     }
     public JSONObject geturl_in_json(String url) throws IOException, JSONException {
         Request request = new Request.Builder()
@@ -61,8 +62,7 @@ public class HttpClient {
                 .url(url)
                 .build();
         Response response = client.newCall(request).execute();
-        if (!response.isSuccessful()) throw new HttpClientException( response);
-        return new JSONObject( response.body().string());
+        return new JSONObject(bodystring(response));
     }
     public String login(String url, List<NameValuePair> params) throws Throwable {
         client.newCall(new Request.Builder().url(url).build()).execute();
@@ -77,15 +77,14 @@ public class HttpClient {
                 .build();
         Response response = client.newCall(request).execute();
         String redirectUrl = response.header("location");
-        if(response.code() == 302 && redirectUrl.equals("https://www.internations.org/start/")){
+        if(response.code() == 302 && redirectUrl!=null && redirectUrl.equals("https://www.internations.org/start/")){
             Response resp2 = client.newCall(new Request.Builder().url(redirectUrl).build()).execute();
-            if (!resp2.isSuccessful()) throw new HttpClientException(resp2);
-            return resp2.body().string();
+            return bodystring(resp2);
         }
         throw new HttpClientException(response);
     }
 
-    public String posturl_string(String url, List<NameValuePair> params) throws Throwable {
+    public String post_formencoded(String url, List<NameValuePair> params) throws Throwable {
         FormBody.Builder builder = new FormBody.Builder();
         for (NameValuePair param : params) builder.add(param.getName(), param.getValue());
         RequestBody formBody = builder.build();
@@ -96,9 +95,14 @@ public class HttpClient {
                 .method("POST",formBody)
                 .build();
         Response response = client.newCall(request).execute();
-        if (!response.isSuccessful()) throw new HttpClientException(response);
+        return bodystring(response);
+    }
 
-        return response.body().string();
+    private String bodystring(Response response) throws IOException {
+        if (!response.isSuccessful()) throw new HttpClientException(response);
+        ResponseBody body = response.body();
+        if(body == null) throw new HttpClientException(response);
+        return body.string();
     }
 
     public List<HttpCookie> getCookies() {
@@ -106,7 +110,7 @@ public class HttpClient {
     }
 
     public static class NameValuePair {
-        private String name, value;
+        private final String name, value;
 
         public NameValuePair(String name, String value) {
             this.name = name;

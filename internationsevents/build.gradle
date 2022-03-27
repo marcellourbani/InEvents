@@ -8,6 +8,7 @@ buildscript {
     }
 }
 plugins {
+    id 'kotlin-android'
     id 'com.android.application'
 }
 
@@ -51,5 +52,9 @@ dependencies {
     api 'androidx.activity:activity:1.4.0'
     api 'androidx.fragment:fragment:1.4.1'
     api 'androidx.core:core:1.7.0'
+    implementation "com.squareup.moshi:moshi:1.13.0"
+    implementation("com.squareup.moshi:moshi-kotlin:1.13.0")
     implementation 'androidx.appcompat:appcompat:1.4.1'
+    implementation 'androidx.core:core-ktx:1.7.0'
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:$kotlin_version"
 }
