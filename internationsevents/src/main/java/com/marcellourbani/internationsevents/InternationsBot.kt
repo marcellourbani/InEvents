@@ -21,9 +21,7 @@ import android.preference.PreferenceManager
 import android.util.Log
 import androidx.collection.ArrayMap
 import com.marcellourbani.internationsevents.HttpClient.HttpClientException
-import com.marcellourbani.internationsevents.data.Event
-import com.marcellourbani.internationsevents.data.EventResponse
-import com.marcellourbani.internationsevents.data.User
+import com.marcellourbani.internationsevents.data.*
 import com.squareup.moshi.JsonAdapter
 import com.squareup.moshi.Moshi
 import com.squareup.moshi.kotlin.reflect.KotlinJsonAdapterFactory
@@ -48,7 +46,8 @@ fun nowAsIso(): String {
 class InternationsBot(sharedPref: SharedPreferences) {
     private val moshi = Moshi.Builder().add(KotlinJsonAdapterFactory()).build()
     private val userJsonAdapter = moshi.adapter(User::class.java)
-    private val eventResponseAdapter: JsonAdapter<EventResponse> = moshi.adapter<EventResponse>(EventResponse::class.java)
+    private val eventResponseAdapter = moshi.adapter(EventResponse::class.java)
+    private val groupResponseAdapter = moshi.adapter(GroupResponse::class.java)
     private var mUser: String?
     private var mPass: String?
     private val mPref: SharedPreferences
@@ -284,6 +283,14 @@ class InternationsBot(sharedPref: SharedPreferences) {
         return response._embedded.self
     }
 
+    @Throws(JSONException::class, IOException::class)
+    private fun readMyGroups2(): List<Group> {
+        val me =
+            mClient!!.geturl_string(BASEURL + "/api/activity-groups/my?limit=100&offset=0")
+        val response = groupResponseAdapter.fromJson(me) ?: return listOf()
+        return response._embedded.self
+    }
+
 
     @Throws(JSONException::class, IOException::class)
     private fun readMyEvents(): List<Event> {
@@ -304,6 +311,7 @@ class InternationsBot(sharedPref: SharedPreferences) {
             mMyUser = readMyUser()
             val invitations = readMyInvitations()
             val myevents = readMyEvents()
+            var groups = readMyGroups2()
             val events = ArrayMap<String, InEvent?>()
             var ev = mClient!!.geturl_string(MYEVENTSURL)
             var evtab = extractTable(ev, "my_upcoming_events_table")
