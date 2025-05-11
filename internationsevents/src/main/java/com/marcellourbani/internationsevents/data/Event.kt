@@ -1,5 +1,14 @@
 package com.marcellourbani.internationsevents.data
 
+import java.util.*
+
+fun saveEvent(e:Event ){}
+
+fun mergeEvents(orig:Event,fresh:Event): Event {
+    if(orig.id != fresh.id) return orig
+    return fresh.copy(isNew = orig.isNew, loadedOn = orig.loadedOn)
+}
+
 data class EventResponse (
     val total: Long,
     val limit: Long,
@@ -36,7 +45,7 @@ data class Event (
     val invitationType: String? = null,
     val userGalleryId: Long,
     val promotionGalleryId: Long,
-    val activityContactPhone: Any? = null,
+    val activityContactPhone: String? = null,
     val attendingContactsIds: List<String>,
     val totalAttendingContacts: Long,
     val meetingPoint: String? = null,
@@ -45,7 +54,9 @@ data class Event (
     val ticketShopIframeCode: Any? = null,
     val localcommunityId: Long,
     val _links: EventLinks,
-    val _embedded: EventEmbedded
+    val _embedded: EventEmbedded,
+    var isNew: Boolean=true,
+    var loadedOn:Long = Date().time
 )
 
 data class EventEmbedded (

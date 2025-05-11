@@ -44,10 +44,6 @@ fun nowAsIso(): String {
 }
 
 class InternationsBot(sharedPref: SharedPreferences) {
-    private val moshi = Moshi.Builder().add(KotlinJsonAdapterFactory()).build()
-    private val userJsonAdapter = moshi.adapter(User::class.java)
-    private val eventResponseAdapter = moshi.adapter(EventResponse::class.java)
-    private val groupResponseAdapter = moshi.adapter(GroupResponse::class.java)
     private var mUser: String?
     private var mPass: String?
     private val mPref: SharedPreferences
@@ -55,7 +51,7 @@ class InternationsBot(sharedPref: SharedPreferences) {
     @JvmField
     var mSigned = false
     @JvmField
-    var mEvents: ArrayMap<String, InEvent>? = ArrayMap()
+    var mEvents: ArrayMap<Long, Event> = ArrayMap()
     var mGroups = ArrayMap<String, InGroup?>()
     private var mMyUser: User? = null
 
@@ -178,7 +174,8 @@ class InternationsBot(sharedPref: SharedPreferences) {
     }
 
     fun saveEvents(all: Boolean) {
-        for (e in mEvents!!.values) if (all || e.mMine) e.save()
+//        for (e in mEvents!!.values) if (all || e.mMine) e.save()
+        for (e in mEvents!!.values) saveEvent(e)
         writeRefresh(Refreshkeys.MYEVENTS)
         if (all) writeRefresh(Refreshkeys.EVENTS)
     }
@@ -226,9 +223,9 @@ class InternationsBot(sharedPref: SharedPreferences) {
         }
     }
 
-    fun loadEvents(): ArrayMap<String, InEvent>? {
+    fun loadEvents(): ArrayMap<Long, Event> {
         try {
-            val events = InEvent.loadEvents()
+            val events = loadEvents()
             if (mEvents == null) mEvents = events else for (event in events.values) {
                 addOrUpdateEvent(event, true)
             }
@@ -272,14 +269,14 @@ class InternationsBot(sharedPref: SharedPreferences) {
     @Throws(JSONException::class, IOException::class)
     private fun readMyUser(): User? {
         val me = mClient!!.geturl_string(BASEURL + "/api/users/current")
-        return userJsonAdapter.fromJson(me)
+        return Serializer.userAdapter.fromJson(me)
     }
 
     @Throws(JSONException::class, IOException::class)
     private fun readMyInvitations(): List<Event> {
         val me =
             mClient!!.geturl_string(BASEURL + "/api/calendar-entries/invitations?offset=0&limit=100&pending=true")
-        val response = eventResponseAdapter.fromJson(me) ?: return listOf()
+        val response = Serializer.eventResponseAdapter.fromJson(me) ?: return listOf()
         return response._embedded.self
     }
 
@@ -287,7 +284,7 @@ class InternationsBot(sharedPref: SharedPreferences) {
     private fun readMyGroups2(): List<Group> {
         val me =
             mClient!!.geturl_string(BASEURL + "/api/activity-groups/my?limit=100&offset=0")
-        val response = groupResponseAdapter.fromJson(me) ?: return listOf()
+        val response = Serializer.groupResponseAdapter.fromJson(me) ?: return listOf()
         return response._embedded.self
     }
 
@@ -297,7 +294,7 @@ class InternationsBot(sharedPref: SharedPreferences) {
         val url = BASEURL + "/api/calendar-entries?offset=0&limit=100&types[]=event&types[]=activity&orderBy=startsOn&endsAfter="+
                 nowAsIso()+"&attendeeId="+mMyUser?.id.toString()+"&orderDirection=asc&locality=global"
         val me = mClient!!.geturl_string(url)
-        val response = eventResponseAdapter.fromJson(me) ?: return listOf()
+        val response = Serializer.eventResponseAdapter.fromJson(me) ?: return listOf()
         return response._embedded.self
     }
     fun readMyEvents(save: Boolean, torefresh: String) {
@@ -335,7 +332,7 @@ class InternationsBot(sharedPref: SharedPreferences) {
                         val event = InEvent(evel, evtab == null)
                         if (!event.isExpired) {
                             if (needRefine(event, torefresh)) refineEvent(event)
-                            addOrUpdateEvent(event)
+//                            addOrUpdateEvent(event)
                             events[event.mEventId] = event
                         }
                     } catch (e: MalformedURLException) {
@@ -351,12 +348,12 @@ class InternationsBot(sharedPref: SharedPreferences) {
             }
             if (!InError.isOk()) return
             //reset attendance if required
-            for (e in mEvents!!.values) {
-                if (e.imGoing() && events[e.mEventId] == null) {
-                    e.set_attendance(false)
-                    events[e.mEventId] = e
-                }
-            }
+//            for (e in mEvents!!.values) {
+//                if (e.imGoing() && events[e.mEventId] == null) {
+//                    e.set_attendance(false)
+//                    events[e.mEventId] = e
+//                }
+//            }
             if (save) {
                 for (e in events.values) e!!.save()
                 writeRefresh(Refreshkeys.MYEVENTS)
@@ -377,12 +374,6 @@ class InternationsBot(sharedPref: SharedPreferences) {
         }
     }
 
-    private fun needRefine(event: InEvent, torefresh: String): Boolean {
-        if (torefresh == ALLEVENTS || event.mEventId == torefresh) return true
-        val old = mEvents!![event.mEventId]
-        return !(old != null && old.mLocation != null && event.mLocation.length > 0)
-    }
-
     @Throws(Exception::class)
     private fun refineEvent(event: InEvent) {
         var ev = event.refineUrl
@@ -390,14 +381,10 @@ class InternationsBot(sharedPref: SharedPreferences) {
         event.refine(ev)
     }
 
-    private fun addOrUpdateEvent(event: InEvent, fromdb: Boolean = false) {
-        val old = mEvents!![event.mEventId]
+    private fun addOrUpdateEvent(event: Event, fromdb: Boolean = false) {
+        val old = mEvents!![event.id]
         if (old == null) {
-            if (!fromdb) {
-                event.isNew = true
-                event.mTimelimit = Date().time
-            }
-            mEvents!![event.mEventId] = event
+            mEvents!![event.id] = event
         } else  //the 'my events' view gives more details, do not overwrite if comes from there and this doesn't
             if (event.mLocation != null || old.mLocation == null) old.merge(event)
     }

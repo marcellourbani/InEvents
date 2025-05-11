@@ -4,6 +4,9 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/InEvents.iml" filepath="$PROJECT_DIR$/.idea/modules/InEvents.iml" />
       <module fileurl="file://$PROJECT_DIR$/.idea/modules/internationsevents/InEvents.internationsevents.iml" filepath="$PROJECT_DIR$/.idea/modules/internationsevents/InEvents.internationsevents.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/internationsevents/InEvents.internationsevents.androidTest.iml" filepath="$PROJECT_DIR$/.idea/modules/internationsevents/InEvents.internationsevents.androidTest.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/internationsevents/InEvents.internationsevents.main.iml" filepath="$PROJECT_DIR$/.idea/modules/internationsevents/InEvents.internationsevents.main.iml" />
+      <module fileurl="file://$PROJECT_DIR$/.idea/modules/internationsevents/InEvents.internationsevents.unitTest.iml" filepath="$PROJECT_DIR$/.idea/modules/internationsevents/InEvents.internationsevents.unitTest.iml" />
     </modules>
   </component>
 </project>
